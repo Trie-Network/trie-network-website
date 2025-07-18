@@ -1,0 +1,94 @@
+/* Base Styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base Theme */
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-rgb: 246, 246, 247;
+}
+
+@layer base {
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 400;
+    font-style: normal;
+    font-size: 15px;
+    line-height: 1.6;
+    letter-spacing: -0.01em;
+    color: rgb(var(--foreground-rgb));
+    background: rgb(var(--background-rgb));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    font-style: normal;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+}
+
+/* Typography */
+.font-display {
+  font-family: 'IBM Plex Sans', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.font-body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.font-mono {
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: -0.01em;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Hide scrollbar but maintain functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;             /* Chrome, Safari and Opera */
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 hover:bg-gray-400;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
