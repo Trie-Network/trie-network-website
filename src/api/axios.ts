@@ -1,119 +1,181 @@
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { toast } from 'react-hot-toast';
+import { API_PORTS } from '@/config/network';
 
-declare module 'axios' {
-    export interface InternalAxiosRequestConfig {
-        serviceType?: string;
-        NFTDataReply?: any[];
-        artifactPath?: string;
-        metadatPath?: string;
-    }
+
+export interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
+    serviceType?: 'daap' | 'node' | string;
+    NFTDataReply?: any[];
+    artifactPath?: string;
+    metadatPath?: string;
 }
 
-export type ServiceType = 'node' | 'dapp' | 'faucet' | 'metrics' | 'comp';
-
-export interface ApiEndpoints {
-    node: string;
-    dapp: string;
-    faucet: string;
-    metrics: string;
-    comp: string;
-}
-
-interface ErrorResponse {
-    message?: string;
+export interface ApiError {
+    message: string;
+    status?: number;
     errors?: Record<string, string[]>;
 }
 
-export const API_ENDPOINTS: ApiEndpoints = {
-    node: 'https://dev-api.xellwallet.com:444/api/',
-    dapp: 'https://dev-api.xellwallet.com:8443/api/',
-    faucet: 'https://trie-faucet-api.trie.network',
-    metrics: 'https://dev-api.xellwallet.com:8443/',
-    comp: 'https://dev-api.xellwallet.com:8448'
-};
+export interface ApiResponse<T = any> {
+    data: T;
+    success: boolean;
+    message?: string;
+}
+
+
+class ApiErrorHandler {
+    private static showToast(message: string, type: 'error' | 'success' = 'error') {
+        toast[type](message, { position: 'top-center' });
+    }
+
+    static handleHttpError(error: AxiosError): ApiError {
+        const status = error.response?.status;
+        const data = error.response?.data as any;
+
+        switch (status) {
+            case 401:
+                return { message: 'Unauthorized access', status };
+            
+            case 403:
+                this.showToast('You do not have permission to perform this action');
+                return { message: 'Forbidden', status };
+            
+            case 404:
+                this.showToast('Resource not found');
+                return { message: 'Resource not found', status };
+            
+            case 422:
+                const validationErrors = data?.errors;
+                if (validationErrors) {
+                    Object.values(validationErrors).forEach((error: any) => {
+                        this.showToast(error[0]);
+                    });
+                }
+                return { message: 'Validation error', status, errors: validationErrors };
+            
+            case 504:
+                this.showToast('The server is taking too long to respond. Please try again later.');
+                return { message: 'Gateway timeout', status };
+            
+            default:
+                return { message: data?.message || 'An unexpected error occurred', status };
+        }
+    }
+
+    static handleNetworkError(error: AxiosError): ApiError {
+        if (error.message === 'Network Error') {
+            this.showToast('Network error. Please check your connection.');
+            return { message: 'Network error' };
+        }
+
+        if (error.code === 'ECONNABORTED') {
+            this.showToast('Request timed out. Please try again.');
+            return { message: 'Request timeout' };
+        }
+
+        return { message: 'An unexpected error occurred' };
+    }
+}
+
+
+class RequestConfigurator {
+    static configureHeaders(config: CustomAxiosRequestConfig): CustomAxiosRequestConfig {
+        if (config.data instanceof FormData) {
+            config.headers = {
+                ...config.headers,
+                'accept': 'multipart/form-data',
+                'Content-Type': 'multipart/form-data',
+            } as any;
+        }
+        return config;
+    }
+
+    static configureBaseURL(config: CustomAxiosRequestConfig): CustomAxiosRequestConfig {
+        const serviceType = config.serviceType || 'node';
+        config.baseURL = API_PORTS[serviceType];
+        return config;
+    }
+}
+
 
 const api = axios.create({
-    timeout: 30000,
     headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
     },
+    timeout: 30000, 
 });
 
+
 api.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
-        if (config.serviceType && API_ENDPOINTS[config.serviceType as ServiceType]) {
-            config.baseURL = API_ENDPOINTS[config.serviceType as ServiceType];
+    (config: CustomAxiosRequestConfig) => {
+        try {
+            config = RequestConfigurator.configureBaseURL(config);
+            config = RequestConfigurator.configureHeaders(config);
+            return config;
+        } catch (error) {
+            return Promise.reject(error);
         }
-
-        if (config.data instanceof FormData) {
-            config.headers['Accept'] = 'multipart/form-data';
-            config.headers['Content-Type'] = 'multipart/form-data';
-        }
-
-        return config;
     },
     (error: AxiosError) => {
-        console.error('Request interceptor error:', error);
         return Promise.reject(error);
+
     }
 );
+
 
 api.interceptors.response.use(
     (response: AxiosResponse) => {
-        return response.data;
+        return response?.data;
     },
-    (error: AxiosError<ErrorResponse>) => {
-        const { response } = error;
-        const toastOptions = { position: 'top-center' as const };
+    async (error: AxiosError) => {
+       
 
-        switch (response?.status) {
-            case 401:
-                break;
+        let apiError: ApiError;
 
-            case 403:
-                toast.error('You do not have permission to perform this action', toastOptions);
-                break;
-
-            case 404:
-                toast.error('Resource not found', toastOptions);
-                break;
-
-            case 422:
-                handleValidationErrors(response.data?.errors);
-                break;
-
-            case 504:
-                toast.error('The server is taking too long to respond. Please try again later.', toastOptions);
-                break;
-
-            default:
-                handleGenericErrors(error);
+        if (error.response) {
+            apiError = ApiErrorHandler.handleHttpError(error);
+        } else if (error.request) {
+            apiError = ApiErrorHandler.handleNetworkError(error);
+        } else {
+            apiError = { message: 'An unexpected error occurred' };
         }
 
-        return Promise.reject(error);
+        return Promise.reject(apiError);
     }
 );
 
-function handleValidationErrors(errors?: Record<string, string[]>) {
-    if (!errors) return;
 
-    Object.values(errors).forEach((errorMessages) => {
-        if (errorMessages.length > 0) {
-            toast.error(errorMessages[0]);
-        }
-    });
-}
+export const apiUtils = {
+    get: <T = any>(url: string, config?: CustomAxiosRequestConfig): Promise<T> => {
+        return api.get(url, config);
+    },
 
-function handleGenericErrors(error: AxiosError) {
-    const toastOptions = { position: 'top-center' as const };
+    post: <T = any>(url: string, data?: any, config?: CustomAxiosRequestConfig): Promise<T> => {
+        return api.post(url, data, config);
+    },
 
-    if (error.message === 'Network Error') {
-        toast.error('Network error. Please check your connection.', toastOptions);
-    } else if (error.code === 'ECONNABORTED') {
-        toast.error('Request timed out. Please try again.', toastOptions);
-    }
-}
+    put: <T = any>(url: string, data?: any, config?: CustomAxiosRequestConfig): Promise<T> => {
+        return api.put(url, data, config);
+    },
+
+    delete: <T = any>(url: string, config?: CustomAxiosRequestConfig): Promise<T> => {
+        return api.delete(url, config);
+    },
+
+    patch: <T = any>(url: string, data?: any, config?: CustomAxiosRequestConfig): Promise<T> => {
+        return api.patch(url, data, config);
+    },
+
+    upload: <T = any>(url: string, formData: FormData, config?: CustomAxiosRequestConfig): Promise<T> => {
+        return api.post(url, formData, {
+            ...config,
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+    },
+};
 
 export default api;
+export { ApiErrorHandler, RequestConfigurator };

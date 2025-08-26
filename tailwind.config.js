@@ -1,5 +1,3 @@
-import { colors } from './src/config/colors.ts';
-
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -27,13 +25,13 @@ export default {
       colors: {
         background: {
           DEFAULT: '#f6f6f7',
-          secondary: '#ffffff',
+          secondary: '#111315',
           tertiary: '#141414'
         },
         primary: {
-          DEFAULT: '#0284a5',
-          hover: '#026d8a',
-          light: 'rgba(6, 182, 212, 0.1)'
+          DEFAULT: 'var(--primary-color)',
+          hover: 'var(--primary-hover-color)',
+          light: 'var(--primary-light-color)'
         },
         border: {
           DEFAULT: '#1F1F1F',

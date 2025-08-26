@@ -1,11 +1,19 @@
 import { DatasetsView } from '../dashboard';
 import { useCompTheme } from '@/contexts/compTheme';
 
-export default function CompDatasets() {
 
-    const { compId } = useCompTheme();
+interface CompDatasetsProps {
+}
+
+
+export default function CompDatasets(props: CompDatasetsProps) {
+    
+    const { primaryColor, compId } = useCompTheme();
 
     return (
-        <DatasetsView compId={compId} />
-    )
+        <DatasetsView 
+            primaryColor={primaryColor} 
+            compId={compId} 
+        />
+    );
 }

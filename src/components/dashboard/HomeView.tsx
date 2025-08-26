@@ -1,17 +1,16 @@
-import {
-  useState
-} from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, useInView, animate } from 'framer-motion';
 import {
   EmptyState,
   TrendingItemSkeleton,
   Skeleton
 } from '@/components/ui';
-import { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks';
 import { getRelativeTimeString } from '@/utils';
-import { motion, useInView, animate } from 'framer-motion';
 import { END_POINTS } from '@/api/requests';
+import { getNetworkColor } from '../../config/colors';
+
 
 interface CounterProps {
   value: number;
@@ -19,7 +18,158 @@ interface CounterProps {
   label: string;
 }
 
-function Counter({ value, duration = 2, label }: CounterProps) {
+interface HomeViewProps {
+  primaryColor?: string;
+}
+
+interface PlatformStatsProps {
+  ModelMetrics: any;
+  transactions: any;
+  loader: boolean;
+}
+
+interface TrendingSectionProps {
+  title: string;
+  data: any[];
+  loader: boolean;
+  usageHistoryLoader: boolean;
+  type: 'model' | 'dataset';
+  navigate: (path: string, options?: any) => void;
+}
+
+interface TrendingItemProps {
+  item: any;
+  index: number;
+  navigate: (path: string, options?: any) => void;
+}
+
+interface TrendingItemCardProps {
+  item: any;
+  index: number;
+  onClick: () => void;
+}
+
+interface StatsCardProps {
+  value: number;
+  label: string;
+  isLoading: boolean;
+}
+
+interface EmptyStateConfig {
+  title: string;
+  icon: string;
+  action: {
+    label: string;
+    href: string;
+  };
+}
+
+
+const LAYOUT_CLASSES = {
+  container: 'grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-112px)] pt-6 pb-16 px-4 md:px-6 lg:px-8',
+  mainContent: 'lg:col-span-3 h-[calc(100vh-112px)] overflow-y-auto pb-16 scrollbar-hide',
+  statsSection: 'bg-white rounded-xl border border-[#e1e3e5] p-6 mb-8 animate-fadeIn',
+  statsTitle: 'text-xl font-bold text-gray-900 mb-4',
+  statsGrid: 'grid grid-cols-2 md:grid-cols-4 gap-4',
+  statsCard: 'bg-gray-50 p-4 rounded-lg',
+  trendingGrid: 'grid grid-cols-1 md:grid-cols-2 gap-6 mb-8',
+  trendingCard: 'bg-white rounded-xl border border-[#e1e3e5] p-6',
+  trendingHeader: 'flex items-center gap-2 mb-4',
+  trendingIcon: 'w-5 h-5 text-gray-600',
+  trendingTitle: 'text-lg font-semibold text-gray-900',
+  trendingSubtitle: 'text-sm text-gray-500',
+  trendingList: 'space-y-3',
+  trendingItem: 'flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer border border-[#e1e3e5]',
+  trendingAvatar: 'w-8 h-8 bg-gradient-to-br rounded-lg bg-gray-200 flex text-gray-900 items-center justify-center font-medium',
+  trendingContent: 'flex-1 min-w-0',
+  trendingName: 'text-sm font-medium text-gray-900 truncate',
+  trendingTime: 'text-xs text-gray-500',
+  seeMoreButton: 'bg-primary font-medium p-2 rounded-lg cursor-pointer text-white w-fit hover:bg-[#026d8a] transition-colors',
+  seeMoreContainer: 'text-gray-900 flex justify-center'
+} as const;
+
+const ANIMATION_CONFIG = {
+  counterDuration: 2,
+  counterEase: "easeOut"
+} as const;
+
+const TRENDING_CONFIG = {
+  maxItems: 5,
+  emptyStateConfigs: {
+    model: {
+      title: "No AI models available yet",
+      icon: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L9 8m4-4v12",
+      action: {
+        label: "Upload Model",
+        href: "/dashboard/upload-model"
+      }
+    },
+    dataset: {
+      title: "No datasets available yet",
+      icon: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L9 8m4-4v12",
+      action: {
+        label: "Upload Dataset",
+        href: "/dashboard/upload-dataset"
+      }
+    }
+  }
+} as const;
+
+const STATS_LABELS = {
+  aiModels: 'AI Models',
+  datasets: 'Datasets',
+  totalAssets: 'Total Assets',
+  transactions: 'Transactions'
+} as const;
+
+const NAVIGATION_PATHS = {
+  models: '/dashboard/models',
+  datasets: '/dashboard/datasets'
+} as const;
+
+
+const createSlug = (name: string): string => {
+  return name?.replace(/\s+/g, '-')?.replace(/\//g, '-') || '';
+};
+
+const getNavigationPath = (item: any): string => {
+  const slug = createSlug(item?.metadata?.name);
+  return `/dashboard/model/${slug}`;
+};
+
+const getNavigationState = (item: any) => {
+  return { state: { model: { ...item, type: item?.metadata?.type } } };
+};
+
+const sortByUsageHistory = (a: any, b: any): number => {
+  if (!a?.usageHistory?.length || !b?.usageHistory?.length) return 0;
+  const aEpoch = a.usageHistory[a.usageHistory.length - 1]?.Epoch;
+  const bEpoch = b.usageHistory[b.usageHistory.length - 1]?.Epoch;
+  if (aEpoch === undefined || bEpoch === undefined) return 0;
+  return bEpoch - aEpoch;
+};
+
+const filterByType = (data: any[], type: string): any[] => {
+  return data?.filter((item: any) =>
+    item?.metadata?.type === type &&
+    item?.usageHistory &&
+    Array.isArray(item.usageHistory) &&
+    item.usageHistory.length > 0
+  ) || [];
+};
+
+const getLastUpdateTime = (item: any): string => {
+  if (!item?.usageHistory?.length) return '-';
+  const lastEpoch = item.usageHistory[item.usageHistory.length - 1]?.Epoch;
+  return lastEpoch ? `Updated ${getRelativeTimeString(Number(lastEpoch))}` : '-';
+};
+
+const getInitials = (name: string): string => {
+  return name?.charAt(0)?.toUpperCase() || '?';
+};
+
+
+const Counter = ({ value, duration = ANIMATION_CONFIG.counterDuration, label }: CounterProps) => {
   const nodeRef = useRef(null);
   const isInView = useInView(nodeRef, { once: true });
   const [displayValue, setDisplayValue] = useState(0);
@@ -29,7 +179,7 @@ function Counter({ value, duration = 2, label }: CounterProps) {
       const controls = animate(0, value, {
         duration,
         onUpdate: (val) => setDisplayValue(Math.round(val)),
-        ease: "easeOut"
+        ease: ANIMATION_CONFIG.counterEase
       });
 
       return () => controls.stop();
@@ -39,226 +189,218 @@ function Counter({ value, duration = 2, label }: CounterProps) {
   return (
     <div
       ref={nodeRef}
-      className="bg-white p-5 rounded-lg hover:shadow-md transition-all duration-300 border border-slate-200 group text-center"
+      className="bg-white p-5 rounded-lg hover:shadow-md transition-all duration-300 border border-[#e1e3e5] group text-center"
     >
       <motion.div
-        className="text-2xl md:text-3xl font-bold text-gray-900 group-hover:text-primary transition-colors"
+        className="text-2xl md:text-3xl font-bold text-gray-900 transition-colors"
+        onMouseEnter={(e) => e.currentTarget.style.color = getNetworkColor()}
+        onMouseLeave={(e) => e.currentTarget.style.color = '#111827'}
       >
         {displayValue}
       </motion.div>
       <div className="text-sm text-gray-500 mt-2">{label}</div>
     </div>
   );
-}
+};
 
-export function HomeView() {
-  const { nftData, loader, usageHistoryLoader } = useAuth()
-  const [modelData, setModalData] = useState([])
-  const [datasetData, setDatasetData] = useState([])
-  const [ModelMetrics, setModelMetrics] = useState<any>({})
-  const [transactions, setTransactions] = useState<any>({})
-  const navigate = useNavigate();
+const StatsCard = ({ value, label, isLoading }: StatsCardProps) => {
+  if (isLoading) {
+    return (
+      <div className={LAYOUT_CLASSES.statsCard}>
+        <Skeleton className="w-24 h-8 mb-2" />
+        <Skeleton className="w-16 h-4" />
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    (async () => {
-      let assets = await END_POINTS.get_asset_count()
-      if (assets) {
-        setModelMetrics(assets)
-      }
-      let transactions = await END_POINTS.get_transaction_count()
-      if (transactions) {
-        setTransactions(transactions)
-      }
-    })()
-  }, [])
+  return <Counter value={value} label={label} />;
+};
 
-  useEffect(() => {
-    if (!nftData?.length) {
-      return
-    }
-    setModalData(
-      nftData
-        ?.filter((data: any) =>
-          data?.metadata?.type === "model" &&
-          data?.usageHistory &&
-          Array.isArray(data.usageHistory) &&
-          data.usageHistory.length > 0
-        )
-        ?.sort((a: any, b: any) => {
-          if (!a?.usageHistory?.length || !b?.usageHistory?.length) return 0;
-          const aEpoch = a.usageHistory[a.usageHistory.length - 1]?.Epoch;
-          const bEpoch = b.usageHistory[b.usageHistory.length - 1]?.Epoch;
-          if (aEpoch === undefined || bEpoch === undefined) return 0;
-          return bEpoch - aEpoch;
-        })
-    )
-    setDatasetData(
-      nftData
-        ?.filter((data: any) =>
-          data?.metadata?.type === "dataset" &&
-          data?.usageHistory &&
-          Array.isArray(data.usageHistory) &&
-          data.usageHistory.length > 0
-        )
-        ?.sort((a: any, b: any) => {
-          if (!a?.usageHistory?.length || !b?.usageHistory?.length) return 0;
-          const aEpoch = a.usageHistory[a.usageHistory.length - 1]?.Epoch;
-          const bEpoch = b.usageHistory[b.usageHistory.length - 1]?.Epoch;
-          if (aEpoch === undefined || bEpoch === undefined) return 0;
-          return bEpoch - aEpoch;
-        })
-    )
-  }, [nftData])
+const TrendingItemCard = ({ item, index, onClick }: TrendingItemCardProps) => (
+  <div
+    onClick={onClick}
+    className={LAYOUT_CLASSES.trendingItem}
+  >
+    <div className={LAYOUT_CLASSES.trendingAvatar}>
+      {getInitials(item?.metadata?.name)}
+    </div>
+    <div className={LAYOUT_CLASSES.trendingContent}>
+      <h3 className={LAYOUT_CLASSES.trendingName}>
+        {item?.metadata?.name}
+      </h3>
+      <div className={LAYOUT_CLASSES.trendingTime}>
+        {getLastUpdateTime(item)}
+      </div>
+    </div>
+  </div>
+);
+
+const TrendingItem = ({ item, index, navigate }: TrendingItemProps) => {
+  const handleClick = () => {
+    const path = getNavigationPath(item);
+    const state = getNavigationState(item);
+    navigate(path, state);
+  };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-112px)] pt-6 pb-16 px-4 md:px-6 lg:px-8">
-      <div className="lg:col-span-3 h-[calc(100vh-112px)] overflow-y-auto pb-16 scrollbar-hide">
-        <div className="bg-white rounded-xl border border-slate-200 p-6 mb-8 animate-fadeIn">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Platform Statistics</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {loader ? (
-              Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="bg-gray-50 p-4 rounded-lg">
-                  <Skeleton className="w-24 h-8 mb-2" />
-                  <Skeleton className="w-16 h-4" />
-                </div>
+    <TrendingItemCard
+      item={item}
+      index={index}
+      onClick={handleClick}
+    />
+  );
+};
+
+const TrendingSection = ({ title, data, loader, usageHistoryLoader, type, navigate }: TrendingSectionProps) => {
+  const isLoading = loader || usageHistoryLoader;
+  const hasData = data?.length > 0;
+  const hasMoreData = data?.length > TRENDING_CONFIG.maxItems;
+  const displayData = data?.slice(0, TRENDING_CONFIG.maxItems) || [];
+  const emptyStateConfig = TRENDING_CONFIG.emptyStateConfigs[type];
+
+  return (
+    <div className={LAYOUT_CLASSES.trendingCard}>
+      <div className={LAYOUT_CLASSES.trendingHeader}>
+        <svg className={LAYOUT_CLASSES.trendingIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+        <h2 className={LAYOUT_CLASSES.trendingTitle}>{title}</h2>
+        <span className={LAYOUT_CLASSES.trendingSubtitle}>(Top {TRENDING_CONFIG.maxItems})</span>
+      </div>
+
+      <div className={LAYOUT_CLASSES.trendingList}>
+        {isLoading ? (
+          Array.from({ length: TRENDING_CONFIG.maxItems }).map((_, index) => (
+            <TrendingItemSkeleton key={index} />
+          ))
+        ) : (
+          <>
+            {hasData ? (
+              displayData.map((item: any, index: number) => (
+                <TrendingItem
+                  key={item?.nft || index}
+                  item={item}
+                  index={index}
+                  navigate={navigate}
+                />
               ))
             ) : (
-              <>
-                <Counter value={ModelMetrics?.ai_model_count || 0} label="AI Models" />
-                <Counter value={ModelMetrics?.dataset_count || 0} label="Datasets" />
-                <Counter value={ModelMetrics?.asset_count || 0} label="Total Assets" />
-                <Counter value={transactions?.transaction_count || 0} label="Transactions" />
-              </>
+              <EmptyState
+                title={emptyStateConfig.title}
+                icon={emptyStateConfig.icon}
+                showBackToHome={false}
+                action={emptyStateConfig.action}
+              />
             )}
-          </div>
-        </div>
+
+            {hasMoreData && (
+              <div className={LAYOUT_CLASSES.seeMoreContainer}>
+                <button
+                  onClick={() => navigate(NAVIGATION_PATHS[type === 'model' ? 'models' : 'datasets'])}
+                  className={LAYOUT_CLASSES.seeMoreButton}
+                >
+                  See more {type === 'model' ? 'models' : 'datasets'}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const PlatformStats = ({ ModelMetrics, transactions, loader }: PlatformStatsProps) => (
+  <div className={LAYOUT_CLASSES.statsSection}>
+    <h2 className={LAYOUT_CLASSES.statsTitle}>Platform Statistics</h2>
+    <div className={LAYOUT_CLASSES.statsGrid}>
+      <StatsCard
+        value={ModelMetrics?.ai_model_count || 0}
+        label={STATS_LABELS.aiModels}
+        isLoading={loader}
+      />
+      <StatsCard
+        value={ModelMetrics?.dataset_count || 0}
+        label={STATS_LABELS.datasets}
+        isLoading={loader}
+      />
+      <StatsCard
+        value={ModelMetrics?.asset_count || 0}
+        label={STATS_LABELS.totalAssets}
+        isLoading={loader}
+      />
+      <StatsCard
+        value={transactions?.transaction_count || 0}
+        label={STATS_LABELS.transactions}
+        isLoading={loader}
+      />
+    </div>
+  </div>
+);
 
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-              <h2 className="text-lg font-semibold text-gray-900">AI Models</h2>
-              <span className="text-sm text-gray-500">(Top 5)</span>
-            </div>
+export function HomeView({ primaryColor }: HomeViewProps = {}) {
+  const { nftData, loader, usageHistoryLoader } = useAuth();
+  const [modelData, setModalData] = useState<any[]>([]);
+  const [datasetData, setDatasetData] = useState<any[]>([]);
+  const [ModelMetrics, setModelMetrics] = useState<any>({});
+  const [transactions, setTransactions] = useState<any>({});
+  const navigate = useNavigate();
 
-            <div className="space-y-3">
-              {loader || usageHistoryLoader ? (
-                Array.from({ length: 5 }).map((_, index) => (
-                  <TrendingItemSkeleton key={index} />
-                ))
-              ) : (
-                <>
-                  {modelData?.length > 0 ? modelData?.slice(0, 5).map((option: any, index: number) => (
-                    <div
-                      key={option?.nft || index}
-                      onClick={() => navigate(`/dashboard/model/${option?.metadata?.name?.replace(/\s+/g, '-')?.replace(/\//g, '-')}`, { state: { model: { ...option, type: option?.metadata?.type } } })}
-                      className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer border border-slate-200"
-                    >
-                      <div className={`w-8 h-8 bg-gradient-to-br rounded-lg bg-gray-200 flex text-gray-900 items-center justify-center font-medium`}>
-                        {option?.metadata?.name?.charAt(0)?.toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium text-gray-900 truncate">
-                          {option?.metadata?.name}
-                        </h3>
-                        <div className="text-xs text-gray-500">
-                          {option?.usageHistory?.length > 0 ?
-                            <span>Updated {getRelativeTimeString(Number(option?.usageHistory[option?.usageHistory?.length - 1]?.Epoch))}</span> : '-'}
-                        </div>
-                      </div>
-                    </div>
-                  )) : (
-                    <EmptyState
-                      title={"No AI models available yet"}
-                      showBackToHome={false}
-                      icon="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L9 8m4-4v12"
-                      action={{
-                        label: "Upload Model",
-                        href: "/dashboard/upload-model"
-                      }}
-                    />
-                  )}
+ 
+  useEffect(() => {
+    (async () => {
+      let assets = await END_POINTS.get_asset_count();
+      if (assets) {
+        setModelMetrics(assets);
+      }
+      let transactions = await END_POINTS.get_transaction_count();
+      if (transactions) {
+        setTransactions(transactions);
+      }
+    })();
+  }, []);
 
-                  {modelData?.length > 5 && (
-                    <div className='text-gray-900 flex justify-center'>
-                      <button
-                        onClick={() => navigate('/dashboard/models')}
-                        className='bg-primary font-medium p-2 rounded-lg cursor-pointer text-white w-fit hover:bg-primary-hover transition-colors'
-                      >
-                        See more models
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
+  
+  useEffect(() => {
+    if (!nftData?.length) {
+      return;
+    }
 
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-              <h2 className="text-lg font-semibold text-gray-900">Datasets</h2>
-              <span className="text-sm text-gray-500">(Top 5)</span>
-            </div>
+    const filteredModels = filterByType(nftData, "model").sort(sortByUsageHistory);
+    const filteredDatasets = filterByType(nftData, "dataset").sort(sortByUsageHistory);
 
-            <div className="space-y-3">
-              {loader || usageHistoryLoader ? (
-                Array.from({ length: 5 }).map((_, index) => (
-                  <TrendingItemSkeleton key={index} />
-                ))
-              ) : (
-                <>
-                  {datasetData?.length > 0 ? datasetData?.slice(0, 5).map((option: any, index: number) => (
-                    <div
-                      key={option?.nft || index}
-                      onClick={() => navigate(`/dashboard/model/${option?.metadata?.name?.replace(/\s+/g, '-')?.replace(/\//g, '-')}`, { state: { model: { ...option, type: option?.metadata?.type } } })}
-                      className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer border border-slate-200"
-                    >
-                      <div className={`w-8 h-8 bg-gradient-to-br rounded-lg bg-gray-200 flex text-gray-900 items-center justify-center font-medium`}>
-                        {option?.metadata?.name?.charAt(0)?.toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium text-gray-900 truncate">
-                          {option?.metadata?.name}
-                        </h3>
-                        <div className="text-xs text-gray-500">
-                          {option?.usageHistory?.length > 0 ?
-                            <span>Updated {getRelativeTimeString(Number(option?.usageHistory[option?.usageHistory?.length - 1]?.Epoch))}</span> : '-'}
-                        </div>
-                      </div>
-                    </div>
-                  )) : (
-                    <EmptyState
-                      title={"No datasets available yet"}
-                      icon="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L9 8m4-4v12"
-                      showBackToHome={false}
-                      action={{
-                        label: "Upload Dataset",
-                        href: "/dashboard/upload-dataset"
-                      }}
-                    />
-                  )}
+    setModalData(filteredModels);
+    setDatasetData(filteredDatasets);
+  }, [nftData]);
 
-                  {datasetData?.length > 5 && (
-                    <div className='text-gray-900 flex justify-center'>
-                      <button
-                        onClick={() => navigate('/dashboard/datasets')}
-                        className='bg-primary font-medium p-2 rounded-lg cursor-pointer text-white w-fit hover:bg-primary-hover transition-colors'
-                      >
-                        See more datasets
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
+  return (
+    <div className={LAYOUT_CLASSES.container}>
+      <div className={LAYOUT_CLASSES.mainContent}>
+        <PlatformStats
+          ModelMetrics={ModelMetrics}
+          transactions={transactions}
+          loader={loader}
+        />
+
+        <div className={LAYOUT_CLASSES.trendingGrid}>
+          <TrendingSection
+            title="AI Models"
+            data={modelData}
+            loader={loader}
+            usageHistoryLoader={usageHistoryLoader}
+            type="model"
+            navigate={navigate}
+          />
+
+          <TrendingSection
+            title="Datasets"
+            data={datasetData}
+            loader={loader}
+            usageHistoryLoader={usageHistoryLoader}
+            type="dataset"
+            navigate={navigate}
+          />
         </div>
       </div>
     </div>

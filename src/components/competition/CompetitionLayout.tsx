@@ -1,16 +1,38 @@
 import { useEffect, useState } from 'react';
-import { TopNavbar } from '../dashboard/TopNavbar';
-import { CnNavItem as NavItem } from './CnNavItem';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { TopNavbar } from '../dashboard/TopNavbar';
+import { CnNavItem as NavItem } from './CnNavItem';
 import { Modal } from '@/components/ui';
 import { useCompTheme } from '@/contexts/compTheme';
 import { getCompetitionTheme } from '@/config/competitions';
 import { COMP_SERVER } from '@/api/requests';
-import { useAuth, useColors } from '@/hooks';
-import { componentStyles } from '@/utils';
+import { useAuth } from '@/hooks';
 
-const MAIN_NAVIGATION = [
+
+interface NavigationItem {
+    id: string;
+    label: string;
+    route: string;
+    icon: string;
+}
+
+interface CompetitionLayoutProps {
+    children: React.ReactNode;
+}
+
+interface AuthModalProps {
+    show: boolean;
+    onClose: () => void;
+    onSubmit: (accessKey: string) => void;
+    accessKey: string;
+    setAccessKey: (value: string) => void;
+    primaryColor: string;
+    isLoading?: boolean;
+}
+
+
+const MAIN_NAVIGATION: NavigationItem[] = [
     {
         id: 'models',
         label: 'AI Models',
@@ -25,7 +47,7 @@ const MAIN_NAVIGATION = [
     }
 ];
 
-const UPLOAD_NAVIGATION = [
+const UPLOAD_NAVIGATION: NavigationItem[] = [
     {
         id: 'upload-model',
         label: 'Upload AI Model',
@@ -40,14 +62,14 @@ const UPLOAD_NAVIGATION = [
     }
 ];
 
-const GO_BACK_BUTTON = {
+const GO_BACK_BUTTON: NavigationItem = {
     id: 'go-back',
     label: 'Go Back',
     route: '/dashboard/all',
     icon: 'M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18'
 };
 
-const COMPETITIONS_NAVIGATION = [
+const COMPETITIONS_NAVIGATION: NavigationItem[] = [
     {
         id: 'home',
         label: 'Home',
@@ -56,7 +78,7 @@ const COMPETITIONS_NAVIGATION = [
     }
 ];
 
-const CREATOR_NAVIGATION = [
+const CREATOR_NAVIGATION: NavigationItem[] = [
     {
         id: 'my-uploads',
         label: 'My Uploads',
@@ -65,11 +87,252 @@ const CREATOR_NAVIGATION = [
     }
 ];
 
-export default function CompetitionLayout({ children }) {
+
+const replaceCompIdInRoute = (route: string, compId: string): string => {
+    return route.replace(':compid', compId);
+};
+
+const getBannerStyle = (primaryColor: string) => ({
+    background: `linear-gradient(to right, ${primaryColor}15, ${primaryColor}05)`,
+    borderBottom: `1px solid ${primaryColor}30`,
+    zIndex: 50
+});
+
+const getInputStyle = (primaryColor: string, hasValue: boolean) => ({
+    "--tw-ring-color": primaryColor,
+    "--tw-ring-opacity": 0.5,
+    "--tw-border-opacity": 1,
+    borderColor: `${primaryColor} var(--tw-border-opacity)`,
+    boxShadow: hasValue ? `0 0 0 2px ${primaryColor}20` : 'none'
+} as React.CSSProperties);
+
+
+const CompetitionBanner = ({ 
+    compId, 
+    primaryColor, 
+    compTheme, 
+    onBackClick 
+}: { 
+    compId: string; 
+    primaryColor: string; 
+    compTheme: any; 
+    onBackClick: () => void; 
+}) => (
+    <div
+        className="pt-[84px] lg:pt-[84px] px-4 md:px-6 lg:px-8 py-4"
+        style={getBannerStyle(primaryColor)}
+    >
+        <div className="max-w-6xl mx-auto">
+            <div className="flex flex-row items-center mb-2">
+                <button
+                    onClick={onBackClick}
+                    className="lg:hidden mr-3 flex items-center justify-center p-1.5 rounded-md bg-white shadow-sm hover:shadow transition-colors"
+                    style={{ color: primaryColor }}
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={GO_BACK_BUTTON.icon} />
+                    </svg>
+                    <span className="ml-1 text-xs font-medium">Back</span>
+                </button>
+
+                <h1 className="text-xl font-bold" style={{ color: primaryColor }}>
+                    {compTheme.name || `Competition: ${compId}`}
+                </h1>
+            </div>
+            {compTheme.description && (
+                <p className="text-sm text-gray-600 mt-1">{compTheme.description}</p>
+            )}
+        </div>
+    </div>
+);
+
+const MobileNavigation = ({ 
+    navigation, 
+    compId 
+}: { 
+    navigation: NavigationItem[]; 
+    compId: string; 
+}) => (
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#e1e3e5] lg:hidden z-20">
+        <div className="flex justify-around items-center py-2">
+            {navigation.slice(0, 2).map((item) => {
+                const route = replaceCompIdInRoute(item.route, compId);
+                return <NavItem key={item.id} item={{ ...item, route }} isMobile={true} />;
+            })}
+            <NavItem
+                key="home-mobile"
+                item={{
+                    ...COMPETITIONS_NAVIGATION[0],
+                    route: `/competition/${compId}/home`
+                }}
+                isMobile={true}
+            />
+        </div>
+    </div>
+);
+
+const NavigationSection = ({ 
+    title, 
+    items, 
+    compId, 
+    primaryColor 
+}: { 
+    title: string; 
+    items: NavigationItem[]; 
+    compId: string; 
+    primaryColor: string; 
+}) => (
+    <div className="space-y-1.5 mb-6">
+        <div className="px-3 mb-2">
+            <h2 className="font-display text-label text-gray-400 uppercase tracking-wider">{title}</h2>
+        </div>
+        {items.map((item) => {
+            const route = replaceCompIdInRoute(item.route, compId);
+            return <NavItem key={item.id} item={{ ...item, route }} />;
+        })}
+    </div>
+);
+
+const Sidebar = ({ 
+    compId, 
+    primaryColor 
+}: { 
+    compId: string; 
+    primaryColor: string; 
+}) => (
+    <div className="w-[280px] hidden lg:block flex-shrink-0 fixed left-0 top-[144px] bottom-0 border-r border-[#e1e3e5] pt-4 bg-[#f6f6f7] z-10">
+        <div className="flex flex-col h-full px-6">
+            <div className="mb-6">
+                <NavItem
+                    key="go-back-top"
+                    item={{ ...GO_BACK_BUTTON }}
+                    badge={
+                        <div className="flex items-center">
+                            <span className="ml-1 text-xs font-medium" style={{ color: primaryColor }}>
+                                Dashboard
+                            </span>
+                        </div>
+                    }
+                />
+            </div>
+
+            <div className="border-t border-gray-200 mb-6 pt-6"></div>
+
+            <NavigationSection 
+                title="ALL" 
+                items={COMPETITIONS_NAVIGATION} 
+                compId={compId} 
+                primaryColor={primaryColor} 
+            />
+
+            <NavigationSection 
+                title="ALL" 
+                items={MAIN_NAVIGATION} 
+                compId={compId} 
+                primaryColor={primaryColor} 
+            />
+
+            <NavigationSection 
+                title="MY" 
+                items={[...UPLOAD_NAVIGATION, ...CREATOR_NAVIGATION]} 
+                compId={compId} 
+                primaryColor={primaryColor} 
+            />
+        </div>
+    </div>
+);
+
+const AuthRequiredMessage = ({ 
+    primaryColor, 
+    onAuthClick 
+}: { 
+    primaryColor: string; 
+    onAuthClick: () => void; 
+}) => (
+    <div className="flex items-center justify-center h-full p-6">
+        <div className="text-center">
+            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                        d="M12 15v2m0 0v2m0-2h2m-2 0H9m3-3V7.5a3 3 0 00-6 0V12H4.5a1.5 1.5 0 00-1.5 1.5V15h10.5a1.5 1.5 0 001.5-1.5V12h-1.5A1.5 1.5 0 0112 10.5V9" />
+                </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">Authentication Required</h2>
+            <p className="text-gray-600 mb-4">You need an access key to view this competition content.</p>
+            <button
+                onClick={onAuthClick}
+                style={{ backgroundColor: primaryColor }}
+                className="px-4 py-2 text-white rounded-md hover:opacity-90 transition-colors"
+            >
+                Enter Access Key
+            </button>
+        </div>
+    </div>
+);
+
+const AuthModal = ({ 
+    show, 
+    onClose, 
+    onSubmit, 
+    accessKey, 
+    setAccessKey, 
+    primaryColor, 
+    isLoading = false 
+}: AuthModalProps) => (
+    <Modal
+        show={show}
+        onClose={onClose}
+        title="Competition Access"
+        preventOutsideClick={true}
+    >
+        <div className="p-4">
+            <p className="mb-4 text-gray-600">
+                You need an access key to enter this competition.
+            </p>
+            <div className="mb-4">
+                <label htmlFor="accessKey" className="block text-sm font-medium text-gray-700 mb-1">
+                    Access Key
+                </label>
+                <input
+                    type="text"
+                    id="accessKey"
+                    value={accessKey}
+                    onChange={(e) => setAccessKey(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 text-black"
+                    style={getInputStyle(primaryColor, accessKey.length > 0)}
+                    placeholder="Enter access key"
+                />
+            </div>
+            <div className="flex justify-end space-x-3 mt-6">
+                <button
+                    onClick={onClose}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                    Cancel
+                </button>
+                <button
+                    onClick={() => onSubmit(accessKey)}
+                    disabled={accessKey.length <= 1 || isLoading}
+                    style={{ backgroundColor: primaryColor }}
+                    className={`px-4 py-2 text-white rounded-md transition-colors ${
+                        accessKey.length <= 1 || isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
+                    }`}
+                >
+                    {isLoading ? 'Submitting...' : 'Submit'}
+                </button>
+            </div>
+        </div>
+    </Modal>
+);
+
+    
+export default function CompetitionLayout({ children }: CompetitionLayoutProps) {
     const [isCompAuth, setIsCompAuth] = useState(false);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [accessKey, setAccessKey] = useState('');
-    const { view = 'all', compid = 'default' } = useParams();
+    const [isLoading, setIsLoading] = useState(false);
+    
+    const { compid = 'default' } = useParams();
     const navigate = useNavigate();
     const { primaryColor } = useCompTheme();
     const { connectedWallet } = useAuth();
@@ -78,241 +341,95 @@ export default function CompetitionLayout({ children }) {
 
     useEffect(() => {
         if (!connectedWallet?.did) {
-            return
+            return;
         }
-
+        
         const checkCompAuth = async () => {
             try {
-                let r1 = await COMP_SERVER.authDid({
+                const response = await COMP_SERVER.authDid({
                     did: connectedWallet?.did,
-                })
-                if (r1?.data?.authenticated === true) {
+                });
+                
+                if (response?.data?.authenticated === true) {
                     setIsCompAuth(true);
                     return;
                 }
             } catch (error) {
-                console.error("Error checking competition auth:", error);
+               
             }
+            
             setShowAuthModal(true);
         };
 
         checkCompAuth();
     }, [compid, connectedWallet?.did]);
 
+    const handleAuthSubmit = async (key: string) => {
+        if (key.length <= 1) return;
+        
+        setIsLoading(true);
+        try {
+            const response = await COMP_SERVER.authenticate({
+                token: String(key).trim(),
+                wallet: connectedWallet?.did
+            });
+            
+            if (response?.data?.error && response?.data?.error?.length > 0) {
+                toast.error(response?.data?.error, { position: 'top-center' });
+                return;
+            }
+            
+            setIsCompAuth(true);
+            setShowAuthModal(false);
+            setAccessKey('');
+        } catch (error) {
+            toast.error("Authentication failed. Please try again.", { position: 'top-center' });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleBackClick = () => navigate('/dashboard/all');
+
     return (
-        <div className="min-h-screen bg-background flex flex-col">
+        <div className="min-h-screen bg-[#f6f6f7] flex flex-col">
             <TopNavbar />
 
-            <div
-                className="pt-[84px] lg:pt-[84px] px-4 md:px-6 lg:px-8 py-4"
-                style={{
-                    background: `linear-gradient(to right, ${primaryColor}15, ${primaryColor}05)`,
-                    borderBottom: `1px solid ${primaryColor}30`,
-                    zIndex: 50
-                }}
-            >
-                <div className="max-w-6xl mx-auto">
-                    <div className="flex flex-row items-center mb-2">
-                        <button
-                            onClick={() => navigate('/dashboard/all')}
-                            className="lg:hidden mr-3 flex items-center justify-center p-1.5 rounded-md bg-white shadow-sm hover:shadow transition-colors"
-                            style={{ color: primaryColor }}
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={GO_BACK_BUTTON.icon} />
-                            </svg>
-                            <span className="ml-1 text-xs font-medium">Back</span>
-                        </button>
+            <CompetitionBanner 
+                compId={compid}
+                primaryColor={primaryColor}
+                compTheme={compTheme}
+                onBackClick={handleBackClick}
+            />
 
-                        <h1 className="text-xl font-bold" style={{ color: primaryColor }}>
-                            {compTheme.name || `Competition: ${compid}`}
-                        </h1>
-                    </div>
-                    {compTheme.description && (
-                        <p className="text-sm text-gray-600 mt-1">{compTheme.description}</p>
-                    )}
-                </div>
-            </div>
-
-            <main className="flex-1 pt-[0] pb-[120px] lg:pb-[84px] bg-background lg:pt-[0] lg:pl-[280px] relative">
-                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 lg:hidden z-20">
-                    <div className="flex justify-around items-center py-2">
-                        {MAIN_NAVIGATION.slice(0, 2).map((item) => {
-                            item.route = `/competition/${compid}/${item.id}`;
-                            return <NavItem key={item.id} item={item} isMobile={true} />;
-                        })}
-                        <NavItem
-                            key="home-mobile"
-                            item={{
-                                ...COMPETITIONS_NAVIGATION[0],
-                                route: `/competition/${compid}/home`
-                            }}
-                            isMobile={true}
-                        />
-                    </div>
-                </div>
+            <main className="flex-1 pt-[0] pb-[120px] lg:pb-[84px] bg-[#f6f6f7] lg:pt-[0] lg:pl-[280px] relative">
+                <MobileNavigation navigation={MAIN_NAVIGATION} compId={compid} />
 
                 <div className="flex flex-col lg:flex-row">
-                    <div className="w-[280px] hidden lg:block flex-shrink-0 fixed left-0 top-[144px] bottom-0 border-r border-slate-200 pt-4 bg-background z-10">
-                        <div className="flex flex-col h-full px-6">
-                            <div className="mb-6">
-                                <NavItem
-                                    key="go-back-top"
-                                    item={{ ...GO_BACK_BUTTON }}
-                                    badge={
-                                        <div className="flex items-center">
-                                            <span className="ml-1 text-xs font-medium"
-                                                style={{ color: `${primaryColor}` }}>
-                                                Dashboard
-                                            </span>
-                                        </div>
-                                    }
-                                />
-                            </div>
-
-                            <div className="border-t border-gray-200 mb-6 pt-6"></div>
-
-                            <div className="space-y-1.5 mb-6">
-                                <div className="px-3 mb-2">
-                                    <h2 className="font-display text-label text-gray-400 uppercase tracking-wider">ALL</h2>
-                                </div>
-                                {COMPETITIONS_NAVIGATION.map((item) => {
-                                    item.route = item.route.replace(':compid', compid);
-                                    return <NavItem key={item.id} item={item} />
-                                })}
-                            </div>
-
-                            <div className="space-y-1.5 mb-6">
-                                <div className="px-3 mb-2">
-                                    <h2 className="font-display text-label text-gray-400 uppercase tracking-wider">ALL</h2>
-                                </div>
-                                {MAIN_NAVIGATION.map((item) => {
-                                    item.route = `/competition/${compid}/${item.id}`
-                                    return <NavItem key={item.id} item={item} />
-                                })}
-                            </div>
-
-                            <div className="space-y-1.5 mb-6">
-                                <div className="px-3 mb-2">
-                                    <h2 className="font-display text-label text-gray-400 uppercase tracking-wider">MY</h2>
-                                </div>
-                                {UPLOAD_NAVIGATION.map((item) => {
-                                    item.route = `/competition/${compid}/${item.id}`
-                                    return <NavItem key={item.id} item={item} />
-                                })}
-
-                                <div>
-                                    <div className="mt-2 space-y-1">
-                                        {CREATOR_NAVIGATION.map((item) => {
-                                            item.route = `/competition/${compid}/${item.id}`
-                                            return <NavItem key={item.id} item={item} />
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {
-
-                            }
-
-                        </div>
-                    </div>
+                    <Sidebar compId={compid} primaryColor={primaryColor} />
 
                     <div className="flex-1 min-w-0 relative">
                         {isCompAuth ? (
                             children
                         ) : (
-                            <div className="flex items-center justify-center h-full p-6">
-                                <div className="text-center">
-                                    <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <svg className="w-8 h-8 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                                d="M12 15v2m0 0v2m0-2h2m-2 0H9m3-3V7.5a3 3 0 00-6 0V12H4.5a1.5 1.5 0 00-1.5 1.5V15h10.5a1.5 1.5 0 001.5-1.5V12h-1.5A1.5 1.5 0 0112 10.5V9" />
-                                        </svg>
-                                    </div>
-                                    <h2 className="text-xl font-bold text-gray-800 mb-2">Authentication Required</h2>
-                                    <p className="text-gray-600 mb-4">You need an access key to view this competition content.</p>
-                                    <button
-                                        onClick={() => setShowAuthModal(true)}
-                                        style={{ backgroundColor: primaryColor }}
-                                        className="px-4 py-2 text-white rounded-md hover:opacity-90 transition-colors"
-                                    >
-                                        Enter Access Key
-                                    </button>
-                                </div>
-                            </div>
+                            <AuthRequiredMessage 
+                                primaryColor={primaryColor}
+                                onAuthClick={() => setShowAuthModal(true)}
+                            />
                         )}
                     </div>
                 </div>
             </main>
 
-            <Modal
+            <AuthModal
                 show={showAuthModal && !isCompAuth}
-                onClose={() => navigate('/dashboard/all')}
-                title="Competition Access"
-                preventOutsideClick={true}
-            >
-                <div className="p-4">
-                    <p className="mb-4 text-gray-600">
-                        You need an access key to enter this competition.
-                    </p>
-                    <div className="mb-4">
-                        <label htmlFor="accessKey" className="block text-sm font-medium text-gray-700 mb-1">
-                            Access Key
-                        </label>
-                        <input
-                            type="text"
-                            id="accessKey"
-                            value={accessKey}
-                            onChange={(e) => setAccessKey(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 text-black"
-                            style={{
-                                "--tw-ring-color": primaryColor,
-                                "--tw-ring-opacity": 0.5,
-                                "--tw-border-opacity": 1,
-                                borderColor: `${primaryColor} var(--tw-border-opacity)`,
-                                boxShadow: accessKey ? `0 0 0 2px ${primaryColor}20` : 'none'
-                            } as React.CSSProperties}
-                            placeholder="Enter access key"
-                        />
-                    </div>
-                    <div className="flex justify-end space-x-3 mt-6">
-                        <button
-                            onClick={() => navigate('/dashboard/all')}
-                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={async () => {
-                                if (accessKey.length > 1) {
-
-                                    try {
-                                        let r1 = await COMP_SERVER.authenticate({
-                                            token: String(accessKey).trim(),
-                                            wallet: connectedWallet?.did
-                                        })
-                                        if (r1?.data?.error && r1?.data?.error?.length > 0) {
-                                            return toast.error(r1?.data?.error, { position: 'top-center' });
-                                        }
-                                        setIsCompAuth(true);
-                                        setShowAuthModal(false);
-                                    } catch (error) {
-                                        toast.error("Authentication failed. Please try again.", { position: 'top-center' });
-                                    }
-
-                                }
-                            }}
-                            disabled={accessKey.length <= 1}
-                            style={{ backgroundColor: primaryColor }}
-                            className={`px-4 py-2 text-white rounded-md transition-colors ${accessKey.length <= 1 ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
-                                }`}
-                        >
-                            Submit
-                        </button>
-                    </div>
-                </div>
-            </Modal>
+                onClose={handleBackClick}
+                onSubmit={handleAuthSubmit}
+                accessKey={accessKey}
+                setAccessKey={setAccessKey}
+                primaryColor={primaryColor}
+                isLoading={isLoading}
+            />
         </div>
-    )
+    );
 }

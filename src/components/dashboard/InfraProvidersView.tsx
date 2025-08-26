@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { ModelCard, SearchInput, EmptyState, FilterButton, Pagination, MobileFilterDrawer, ModelCardSkeleton, FilterSkeleton, Skeleton } from '@/components/ui';
-import { useAuth, useFilteredItems , useColors } from '@/hooks';
-import { componentStyles } from '@/utils';
+import { useAuth, useFilteredItems } from '@/hooks';
+
 
 const ITEMS_PER_PAGE = 12;
 
@@ -15,7 +15,7 @@ const PROVIDER_ICONS = {
     color: 'bg-gradient-to-br from-blue-500 to-cyan-500'
   },
   'TPU': {
-    icon: 'M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25',
+    icon: 'M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H3.75A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25',
     color: 'bg-gradient-to-br from-green-500 to-emerald-500'
   },
   'Memory': {
@@ -62,8 +62,10 @@ export function InfraProvidersView() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-
   const { infraProviders, loader } = useAuth()
+
+ 
+
 
   const {
     filteredItems: paginatedProviders,
@@ -75,6 +77,7 @@ export function InfraProvidersView() {
     setCurrentPage,
     handleFilterSelect
   } = useFilteredItems(infraProviders);
+
 
   const filteredHardwareTypes = useMemo(() => {
     if (!searchQuery) return HARDWARE_TYPES;
@@ -121,7 +124,7 @@ export function InfraProvidersView() {
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-112px)] pt-6 pb-16 px-4 md:px-6 lg:px-8">
       <MobileFilterDrawer isOpen={mobileFiltersOpen} onClose={() => setMobileFiltersOpen(false)}>
         <div className="space-y-6">
-            <div className="relative">
+          <div className="relative">
             <SearchInput
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -131,7 +134,7 @@ export function InfraProvidersView() {
           </div>
 
           {Object.entries(filteredHardwareTypes).map(([category, types]) => (
-            <div key={category} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div key={category} className="bg-white rounded-xl shadow-sm border border-[#e1e3e5] p-6">
               <div className="mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">{category}</h2>
               </div>
@@ -152,7 +155,7 @@ export function InfraProvidersView() {
           ))}
 
           {Object.entries(filteredRegions).map(([region, locations]) => (
-            <div key={region} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div key={region} className="bg-white rounded-xl shadow-sm border border-[#e1e3e5] p-6">
               <div className="mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">{region}</h2>
               </div>
@@ -194,7 +197,7 @@ export function InfraProvidersView() {
             Filters
           </button>
           {selectedFilters.size > 0 && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary text-white">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#0284a5] text-white">
               {selectedFilters.size} selected
             </span>
           )}
@@ -234,7 +237,7 @@ export function InfraProvidersView() {
             icon="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
             action={{
               label: "Become a Provider",
-              onClick: () => {}
+              onClick: () => {/* Add provider logic */ }
             }}
           />
         )}
@@ -272,7 +275,7 @@ export function InfraProvidersView() {
                 {selectedFilters.size > 0 && (
                   <button
                     onClick={clearFilters}
-                    className="text-sm text-primary hover:text-primary-hover flex items-center gap-1"
+                    className="text-sm text-[#0284a5] hover:text-[#026d8a] flex items-center gap-1"
                   >
                     <span>Clear filters</span>
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -290,7 +293,7 @@ export function InfraProvidersView() {
             </div>
 
             {Object.entries(filteredHardwareTypes).map(([category, types]) => (
-              <div key={category} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <div key={category} className="bg-white rounded-xl shadow-sm border border-[#e1e3e5] p-6">
                 <div className="mb-4">
                   <h2 className="text-lg font-semibold text-gray-900">{category}</h2>
                 </div>
@@ -311,7 +314,7 @@ export function InfraProvidersView() {
             ))}
 
             {Object.entries(filteredRegions).map(([region, locations]) => (
-              <div key={region} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <div key={region} className="bg-white rounded-xl shadow-sm border border-[#e1e3e5] p-6">
                 <div className="mb-4">
                   <h2 className="text-lg font-semibold text-gray-900">{region}</h2>
                 </div>

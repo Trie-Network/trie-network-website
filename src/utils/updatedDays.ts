@@ -5,12 +5,14 @@ export const getRelativeTimeString = (epochSeconds: number) => {
     const timestamp = new Date(epochSeconds * 1000);
     const now = new Date();
 
+   
     const timestampDate = new Date(timestamp) as any;
     timestampDate.setHours(0, 0, 0, 0);
 
     const nowDate = new Date(now) as any;
     nowDate.setHours(0, 0, 0, 0);
 
+   
     const diffTime = nowDate - timestampDate;
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 

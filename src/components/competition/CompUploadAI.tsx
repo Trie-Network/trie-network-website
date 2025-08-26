@@ -1,11 +1,20 @@
 import { ModelUploadView } from '../dashboard';
 import { useCompTheme } from '@/contexts/compTheme';
 
-export default function CompUploadAI() {
 
+interface CompUploadAIProps {
+   
+}
+
+
+export default function CompUploadAI(props: CompUploadAIProps) {
+  
     const { primaryColor, compId } = useCompTheme();
 
     return (
-        <ModelUploadView primaryColor={primaryColor} compId={compId} />
-    )
+        <ModelUploadView 
+            primaryColor={primaryColor} 
+            compId={compId} 
+        />
+    );
 }

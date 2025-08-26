@@ -1,13 +1,110 @@
 import { useEffect, useState } from 'react';
 import { useCallback, useRef } from 'react';
+import { getNetworkColor } from '../../config/colors';
 import { Breadcrumbs } from '@/components/ui';
 import toast from 'react-hot-toast';
-import { useAuth , useColors } from '@/hooks';
+import { useAuth } from '@/hooks';
 import { END_POINTS } from '@/api/requests';
 import { Plus, X } from 'lucide-react';
 import { InfraModal } from '../ui/infraModal';
-import { CONSTANTS , componentStyles } from '@/utils';
+import { CONSTANTS, TOKEN_NAME } from '@/config/network';
 import { useNavigate } from 'react-router-dom';
+import { useTokenName } from '@/contexts/TokenNameContext';
+import { useLoader } from '@/contexts/LoaderContext';
+
+
+interface ModelUploadViewProps {
+  primaryColor?: string;
+  compId?: string;
+}
+
+interface ModelMetrics {
+  accuracy: string;
+  precision: string;
+  recall: string;
+  f1Score: string;
+}
+
+interface ModelPricing {
+  price: string;
+  model?: string;
+  currency?: string;
+}
+
+interface ModelFormData {
+  name: string;
+  providerid: string;
+  description: string;
+  mainCategory: string;
+  category: string;
+  tags: string[];
+  metrics: ModelMetrics;
+  files: File[];
+  url?: string;
+  pricing: ModelPricing;
+}
+
+interface TaskCategories {
+  [key: string]: string[];
+}
+
+interface BreadcrumbItem {
+  label: string;
+  href?: string;
+}
+
+interface FormFieldProps {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  type?: 'text' | 'textarea' | 'select';
+  placeholder?: string;
+  options?: { value: string; label: string }[];
+  rows?: number;
+  required?: boolean;
+  disabled?: boolean;
+  description?: string;
+}
+
+interface MetricsFieldProps {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  placeholder: string;
+}
+
+interface FileUploadAreaProps {
+  isDragging: boolean;
+  files: File[];
+  onDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragLeave: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
+  onFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  primaryColor: string;
+}
+
+interface ActionButtonsProps {
+  currentStep: string;
+  uploading: boolean;
+  onCancel: () => void;
+  onBack: () => void;
+  onNext: () => void;
+  primaryColor: string;
+}
+
+interface SuccessModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  tokenName: string;
+}
+
+interface ProviderSelectionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectProvider: (data: any) => void;
+}
 
 const STEPS = {
   DETAILS: 'details',
@@ -17,7 +114,7 @@ const STEPS = {
 
 type Step = typeof STEPS[keyof typeof STEPS];
 
-const TASK_CATEGORIES = {
+const TASK_CATEGORIES: TaskCategories = {
   'Multimodal': [
     'Audio-Text-to-Text',
     'Image-Text-to-Text',
@@ -83,7 +180,216 @@ const TASK_CATEGORIES = {
   ]
 };
 
+const BREADCRUMB_ITEMS: BreadcrumbItem[] = [
+  { label: 'Details' },
+  { label: 'Pricing' },
+  { label: 'Review' }
+];
 
+const INITIAL_FORM_DATA: ModelFormData = {
+  name: '',
+  providerid: '',
+  description: '',
+  mainCategory: '',
+  category: '',
+  tags: [],
+  metrics: {
+    accuracy: '',
+    precision: '',
+    recall: '',
+    f1Score: ''
+  },
+  files: [],
+  pricing: {
+    price: '',
+    model: '',
+    currency: ''
+  }
+};
+
+const LAYOUT_CLASSES = {
+  container: 'max-w-3xl mx-auto px-4 py-12',
+  header: 'mb-8',
+  breadcrumbs: 'mb-8',
+  title: 'text-center mt-8',
+  mainTitle: 'text-3xl font-bold text-gray-900 mb-4',
+  subtitle: 'text-lg text-gray-600 font-medium',
+  contentContainer: 'bg-white rounded-xl border border-[#e1e3e5] p-8',
+  contentWrapper: 'space-y-6',
+  fieldContainer: 'space-y-2',
+  fieldLabel: 'block text-base font-semibold text-gray-900 mb-2',
+  fieldLabelRequired: 'block text-base font-semibold text-gray-900 mb-2',
+  fieldInput: 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 text-gray-900',
+  fieldTextarea: 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 text-gray-900',
+  fieldSelect: 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 bg-white text-gray-900',
+  fieldDescription: 'mt-2 text-sm text-gray-600',
+  gridContainer: 'grid grid-cols-1 md:grid-cols-2 gap-6',
+  metricsSection: 'space-y-4',
+  metricsTitle: 'text-lg font-semibold text-gray-900 mb-4',
+  metricsDescription: 'text-sm text-gray-600 font-medium',
+  metricsGrid: 'grid grid-cols-1 md:grid-cols-2 gap-4',
+  metricsField: 'space-y-2',
+  metricsLabel: 'block text-sm font-medium text-gray-700 mb-2',
+  metricsInput: 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 text-gray-900',
+  assetSection: 'my-4 mt-6',
+  assetTitle: 'text-lg font-semibold text-gray-900 mt-4',
+  fileUploadContainer: 'mt-1',
+  fileUploadLabel: 'block text-sm mt-2 font-medium text-gray-700 mb-2',
+  fileUploadArea: 'mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg transition-colors cursor-pointer',
+  fileUploadContent: 'space-y-1 text-center',
+  fileUploadIcon: 'mx-auto h-12 w-12 text-gray-400',
+  fileUploadText: 'flex text-sm text-gray-600',
+  fileUploadLink: 'relative cursor-pointer bg-white rounded-md font-medium focus-within:outline-none',
+  fileUploadInput: 'sr-only',
+  fileUploadDescription: 'text-xs text-gray-500',
+  divider: 'text-gray-900 text-sm text-center mt-4',
+  urlInputContainer: 'mt-4',
+  urlInputLabel: 'block text-sm mt-4 font-medium text-gray-700 mb-2',
+  urlInputWrapper: 'flex gap-2 mt-4',
+  urlInput: 'flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent bg-white text-gray-900',
+  actions: 'flex items-center justify-end gap-4 mt-8',
+  cancelButton: 'px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors',
+  backButton: 'px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50',
+  nextButton: 'px-4 py-2 text-sm font-medium text-white rounded-lg',
+  loadingSpinner: 'loader border-t-transparent border-solid border-2 border-white-500 rounded-full animate-spin w-6 h-6'
+} as const;
+
+const MODAL_TIMEOUT = 5000;
+
+const getFocusRingStyle = (primaryColor: string): React.CSSProperties => {
+  return {
+    outline: 'none',
+    borderColor: 'transparent',
+    boxShadow: `0 0 0 2px ${primaryColor}33`
+  };
+};
+
+const getButtonStyle = (primaryColor: string): React.CSSProperties => {
+  return {
+    backgroundColor: primaryColor
+  };
+};
+
+const getButtonHoverStyle = (primaryColor: string): React.CSSProperties => {
+  return {
+    backgroundColor: `${primaryColor}dd`
+  };
+};
+
+const getTextStyle = (primaryColor: string): React.CSSProperties => {
+  return {
+    color: primaryColor
+  };
+};
+
+const getTextHoverStyle = (primaryColor: string): React.CSSProperties => {
+  return {
+    color: `${primaryColor}dd`
+  };
+};
+
+const getBorderHighlightStyle = (primaryColor: string): React.CSSProperties => {
+  return {
+    borderColor: primaryColor
+  };
+};
+
+const getBgHighlightStyle = (primaryColor: string): React.CSSProperties => {
+  return {
+    backgroundColor: `${primaryColor}11`,
+    borderColor: primaryColor
+  };
+};
+
+const handleNestedFieldChange = (
+  formData: ModelFormData,
+  setFormData: React.Dispatch<React.SetStateAction<ModelFormData>>,
+  name: string,
+  value: string
+): void => {
+  if (name.includes('.')) {
+    const [parent, child] = name.split('.');
+    setFormData(prev => ({
+      ...prev,
+      [parent]: {
+        ...(prev[parent as keyof typeof prev] as any),
+        [child]: value
+      }
+    }));
+  } else {
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  }
+};
+
+const createMetadata = (formData: ModelFormData, compId?: string) => {
+  let metadata = {
+    type: "model",
+    name: formData.name,
+    description: formData.description,
+    price: formData.pricing.price,
+    category: formData.category,
+    mainCategory: formData.mainCategory,
+    depinProviderDid: formData?.providerid,
+    ...formData.metrics
+  };
+  
+  if (compId && compId?.length > 0) {
+    metadata['compId'] = String(compId).trim();
+  }
+  
+  return metadata;
+};
+
+const createPublishAssetData = (formData: ModelFormData, connectedWallet: any, hostingCost: number) => {
+  return {
+    "publish_asset": {
+      "asset_owner_did": connectedWallet?.did,
+      "asset_publish_description": `Model published and owned by ${connectedWallet?.did}`,
+      "asset_value": parseFloat(`${(parseFloat(formData?.pricing?.price) || 1) * 0.001}`),
+      "depin_provider_did": formData?.providerid ?? "bafybmialabl2a23voctghw2i2unny3h5flztwt2obr6t44jd2mpuna4m4m",
+      "depin_hosting_cost": hostingCost,
+      "ft_denom": CONSTANTS.FT_DENOM,
+      "ft_denom_creator": CONSTANTS.FT_DENOM_CREATOR
+    }
+  };
+};
+
+const createExecuteData = (data: any, connectedWallet: any) => {
+  return {
+    "comment": "string",
+    "executorAddr": connectedWallet?.did,
+    "quorumType": 2,
+    "smartContractData": JSON.stringify(data),
+    smartContractToken: CONSTANTS.CONTRACT_TOKEN
+  };
+};
+
+const validateFileUpload = (files: File[], url?: string): boolean => {
+  if (files.length > 0 && url && url.length > 0) {
+    toast.error("Please provide either a file upload or a Hugging Face model URL, not both.");
+    return false;
+  }
+  
+  if (files.length === 0 && (!url || url.length === 0)) {
+    toast.error("Please upload a file or provide a Hugging Face model URL.");
+    return false;
+  }
+  
+  if (files.length > 0) {
+    const fname = `${parseInt(Date.now().toString())}_${files[0]?.name}`;
+    const invalidExtensions = ['.jpg', '.png', '.jpeg', '.gif'];
+    
+    if (invalidExtensions.some(ext => fname.toLowerCase().endsWith(ext))) {
+      toast.error("Please provide a valid model file. Image files are not allowed.");
+      return false;
+    }
+  }
+  
+  return true;
+};
 
 
 interface ModelUploadViewProps {
@@ -91,7 +397,8 @@ interface ModelUploadViewProps {
   compId?: string;
 }
 
-export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploadViewProps = {}) {
+
+export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: ModelUploadViewProps = {}) {
   const [currentStep, setCurrentStep] = useState<Step>(STEPS.DETAILS);
   const [formData, setFormData] = useState<any>({
     name: '',
@@ -113,15 +420,26 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
     }
   });
   const [uploading, setUploading] = useState(false);
-  const messageHandlerRef = useRef<any>(null);
   const [isDragging, setIsDragging] = useState(false);
   const { connectedWallet, socketRef, setShowExtensionModal, refreshBalance } = useAuth()
+  const { setUploadModelLoading, loaders } = useLoader(); 
   const [showModal, setShowModal] = useState<boolean>(false);
   const [selectModal, setSelectModal] = useState<boolean>(false)
   const [hostingCost, setHostingCost] = useState<number>(1)
   const [selectProvider, setSelectProvider] = useState<any>(null);
   const navigate = useNavigate()
+  const tokenName = useTokenName();
 
+  
+  useEffect(() => {
+    if (!loaders.uploadModel && uploading) {
+     
+      setUploading(false);
+      window.location.href = '/dashboard/assets';
+    }
+  }, [loaders.uploadModel, uploading]);
+
+ 
   const focusRingStyle = {
     outline: 'none',
     borderColor: 'transparent',
@@ -162,15 +480,14 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
     setSelectProvider(data)
     setHostingCost(Number(data?.hostingCost))
   }
-  
-  
+ 
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (showModal) {
       timer = setTimeout(() => {
         setShowModal(false);
         navigate('/dashboard/assets')
-      }, 5000);
+      }, 5000); 
     }
     return () => {
       if (timer) clearTimeout(timer);
@@ -183,14 +500,7 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
   };
 
 
-  useEffect(() => {
-    return () => {
-      if (messageHandlerRef.current) {
-        window.removeEventListener('message', messageHandlerRef.current);
-        messageHandlerRef.current = null;
-      }
-    };
-  }, []);
+
 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -218,84 +528,9 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
       return
     }
 
-    if (messageHandlerRef.current) {
-      window.removeEventListener('message', messageHandlerRef.current);
-      messageHandlerRef.current = null;
-    }
-
-    const messageHandler = (event: any) => {
 
 
-      const result = event?.data?.data;
-      if (!result?.status) {
-        if (result?.message) {
-          toast.error(result?.message);
-        }
-        return
-      }
-      toast.success(result?.message);
-      if (event?.data?.type == "CONTRACT_RESULT" && result?.step == "EXECUTE" && result?.status) {
-        setUploading(true)
-        return
-      }
-      else if (event?.data?.type == "NFT_RESULT" && result?.step == "SIGNATURE") {
-        let message = {
-          resut: null,
-          message: event.data.data?.message,
-          status: true,
-        }
-        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-          socketRef.current.send(typeof message === 'string' ? message : JSON.stringify(message));
-          console.log('Message sent:', message);
-          return true;
-        } else {
-          console.error('WebSocket is not connected. Message not sent.');
-          return false;
-        }
-      }
-      else if (event?.data?.type == "FT_RESULT" && result?.step == "SIGNATURE") {
-        let message = {
-          resut: null,
-          message: event.data.data?.message,
-          status: true,
-        }
-        setUploading(false)
-        refreshBalance()
-        setFormData({
-          name: '',
-          description: '',
-          providerid: '',
-          mainCategory: '',
-          metrics: {
-            accuracy: '',
-            precision: '',
-            recall: '',
-            f1Score: ''
-          },
-          category: '',
-          pricing: {
-            price: '',
-          },
-          files: []
-        })
 
-        setShowModal(true)
-        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-          socketRef.current.send(typeof message === 'string' ? message : JSON.stringify(message));
-          console.log('Message sent:', message);
-          return true;
-        } else {
-          console.error('WebSocket is not connected. Message not sent.');
-          return false;
-        }
-      } else {
-        
-      }
-    };
-
-    messageHandlerRef.current = messageHandler;
-
-    window.addEventListener('message', messageHandler);
 
     let metadata = {
       type: "model",
@@ -337,8 +572,10 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
         "ft_denom_creator": CONSTANTS.FT_DENOM_CREATOR
       }
     }
+   
     const metadataJSON = JSON.stringify(metadata, null);
-    
+   
+
     let asset_id, fname;
 
     if (formData?.files?.length > 0) {
@@ -362,28 +599,32 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
 
       formDatas.append('assetName', fname);
       formDatas.append('assetType', 'model');
-      setUploading(true)
+      setUploading(true) 
+      setUploadModelLoading(true)
 
       const r1 = await END_POINTS.upload_obj(selectProvider?.endpoints?.upload, formDatas)
       if (!r1?.status) {
         toast.error("Error uploading files. Please try again.");
-        setUploading(false)
+        setUploading(false) 
+        setUploadModelLoading(false) 
         return;
       }
       asset_id = r1?.data?.data?.assetId;
     } else if (formData?.url) {
       let hfUrl = String(formData?.url).trim();
-      
+    
       const formDatas = new FormData();
       fname = `${parseInt(Date.now().toString())}`;
       formDatas.append('assetName', fname);
       formDatas.append('assetType', 'model');
       formDatas.append('url', hfUrl);
       setUploading(true)
+      setUploadModelLoading(true) 
       const r1 = await END_POINTS.upload_obj(selectProvider?.endpoints?.upload, formDatas)
       if (!r1?.status) {
         toast.error("Error uploading files. Please try again.");
         setUploading(false)
+        setUploadModelLoading(false) 
         return;
       }
       asset_id = r1?.data?.data?.assetId;
@@ -401,6 +642,7 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
       "asset_filename": fname,
     }
 
+
     const executeData = {
       "comment": "string",
       "executorAddr": connectedWallet?.did,
@@ -408,24 +650,41 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
       "smartContractData": JSON.stringify(data),
       smartContractToken: CONSTANTS.CONTRACT_TOKEN
     }
-    if (window.myExtension) {
-      try {
-        window.myExtension.trigger({
-          type: "INITIATE_CONTRACT",
-          data: executeData
-        });
-      } catch (error) {
-        console.error("Extension error:", error);
-        alert("Please refresh the page to use the extension features");
-      }
-    } else {
+
+    if (!window.xell) {
       setShowExtensionModal(true)
       alert("Extension not detected.Please install the extension and refresh the page.");
-      console.warn("Extension not detected. Please install the extension and refresh the page.");
+      
+      setUploading(false);
+      setUploadModelLoading(false); 
+      return;
     }
-  }, [formData]);
+
+    try {
+      const result = await window.xell.executeContract(executeData);
+      
+      
+      
+      if (result?.status) {
+        toast.success(result?.data?.message);
+        
+      }
+      else {
+        toast.error(result?.data?.message);
+        setUploading(false); 
+        setUploadModelLoading(false); 
+      }
+    } catch (error) {
+    
+      toast.error("Contract execution failed. Please try again.");
+      setUploading(false); 
+      setUploadModelLoading(false); 
+    }
+  }, [formData, connectedWallet, setUploadModelLoading]);      
+  
 
   const handleNext = () => {
+   
     switch (currentStep) {
       case STEPS.DETAILS:
         setCurrentStep(STEPS.PRICING);
@@ -502,9 +761,11 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
         </div>
       </div>
 
+     
       {currentStep === STEPS.DETAILS && (
-        <div className="bg-white rounded-xl border border-slate-200 p-8">
+        <div className="bg-white rounded-xl border border-[#e1e3e5] p-8">
           <div className="space-y-6">
+           
             <div>
               <label className="block text-base font-semibold text-gray-900 mb-2">
                 Model Name
@@ -619,6 +880,7 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
               )}
             </div>
 
+           
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -705,7 +967,7 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
               </label>
               <div
                 className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg transition-colors cursor-pointer ${isDragging
-                  ? 'border-primary bg-primary/5'
+                  ? `border-[${getNetworkColor()}] bg-[${getNetworkColor()}]/5`
                   : formData?.files?.length > 0
                     ? 'border-green-300 bg-green-50'
                     : 'border-gray-300 hover:border-gray-400'
@@ -714,6 +976,7 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 style={isDragging ? bgHighlightStyle : {}}
+             
               >
                 <div className="space-y-1 text-center">
                   <svg
@@ -765,7 +1028,8 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
                   name="url"
                   value={formData?.url}
                   onChange={handleInputChange}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white text-gray-900"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent bg-white text-gray-900"
+                  style={{ '--tw-ring-color': getNetworkColor() } as React.CSSProperties}
                   placeholder="e.g., https://huggingface.co/models/facebook/bart-large-cnn"
                 />
               </div>
@@ -775,7 +1039,7 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
       )}
 
       {currentStep === STEPS.PRICING && (
-        <div className="bg-white rounded-xl border border-slate-200 p-8">
+        <div className="bg-white rounded-xl border border-[#e1e3e5] p-8">
           <div className="space-y-6">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -790,6 +1054,7 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
               </label>
               <div className="relative max-w-md">
                 <div className="relative flex items-center">
+                
                   <input
                     type="text"
                     name="pricing.price"
@@ -807,10 +1072,12 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
                     className="block w-full pl-6 pr-20 py-2.5 text-gray-900 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-400 transition-colors text-base font-medium bg-white shadow-sm"
                     placeholder="Enter amount"
                   />
-                  <p className='text-gray-600 border border-gray-300 bg-gray-100 ms-2  rounded-lg  p-2.5 font-medium text-sm focus:outline-none '>TRIE</p>
+                 
+                  <p className='text-gray-600 border border-gray-300 bg-gray-100 ms-2  rounded-lg  p-2.5 font-medium text-sm focus:outline-none '>{tokenName.toUpperCase()}</p>
                   <p className='text-gray-600 px-2 text-lg'>=</p>
                   <p className='text-gray-600 border text-center border-gray-300  bg-white ms-2  rounded-lg  p-2.5 font-medium text-sm focus:outline-none w-auto'>{formData?.pricing?.price ? (formData?.pricing?.price / 1000) : 0}</p>
                   <p className='text-gray-600 border border-gray-300 bg-gray-100 ms-2  rounded-lg  p-2.5 font-medium text-sm focus:outline-none '>RBT</p>
+                 
                 </div>
               </div>
             </div>
@@ -819,7 +1086,7 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
       )}
 
       {currentStep === STEPS.REVIEW && (
-        <div className="bg-white rounded-xl border border-slate-200 p-8">
+        <div className="bg-white rounded-xl border border-[#e1e3e5] p-8">
           <div className="space-y-8">
             <div>
               <h2 className="text-lg font-medium text-gray-900 mb-4">Review Model Details</h2>
@@ -869,11 +1136,12 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
               <h2 className="text-lg font-medium text-gray-900 mb-4">Pricing</h2>
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="grid grid-cols-2 gap-4">
+                 
                   {formData?.pricing?.model !== 'free' && (
                     <div>
                       <label className="block text-sm font-medium text-gray-500">Price</label>
                       <p className="mt-1 text-sm text-gray-900">
-                        {formData?.pricing?.price} TRIE ({formData?.pricing?.price / 1000} RBT)
+                        {formData?.pricing?.price} {tokenName.toUpperCase()} ({formData?.pricing?.price / 1000} RBT)
                         {formData?.pricing?.model === 'subscription' ? '/month' : ''}
                       </p>
                     </div>
@@ -885,6 +1153,7 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
         </div>
       )}
 
+      
       <div className="flex items-center justify-end gap-4 mt-8">
         <button
           type="button"
@@ -913,11 +1182,13 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
           onMouseOver={(e) => Object.assign(e.currentTarget.style, buttonHoverStyle)}
           onMouseOut={(e) => Object.assign(e.currentTarget.style, buttonStyle)}
         >
-          {uploading ? <div className="flex justify-center items-center ">
-            <div className="loader border-t-transparent border-solid border-2 border-white-500 rounded-full animate-spin w-6 h-6"></div>
-          </div>
-            :
-            currentStep === STEPS.REVIEW ? 'Publish Model' : 'Next'}
+          {uploading ? (
+            <div className="flex justify-center items-center ">
+              <div className="loader border-t-transparent border-solid border-2 border-white-500 rounded-full animate-spin w-6 h-6"></div>
+            </div>
+          ) : (
+            currentStep === STEPS.REVIEW ? 'Publish Model' : 'Next'
+          )}
         </button>
       </div>
       {showModal && (
@@ -938,7 +1209,7 @@ export function ModelUploadView({ primaryColor = '#0284a5', compId }: ModelUploa
               </div>
               <h3 className="text-white text-xl font-bold font-['IBM_Plex_Sans']">Success!</h3>
               <p className="text-gray-300 mt-2 font-['IBM_Plex_Sans']">
-                Transfer of TRIE tokens to Infra Provider is successful and the hosting of your Asset is in progress.
+                Transfer of {tokenName.toUpperCase()} tokens to Infra Provider is successful and the hosting of your Asset is in progress.
               </p>
             </div>
 

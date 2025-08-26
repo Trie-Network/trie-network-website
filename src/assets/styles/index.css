@@ -1,22 +1,31 @@
-/* Base Styles */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Base Theme */
+
 :root {
   --foreground-rgb: 255, 255, 255;
   --background-rgb: 246, 246, 247;
+  
+  --font-family-primary: 'IBM Plex Sans', sans-serif;
+  --font-family-mono: 'IBM Plex Mono', monospace;
+  --font-size-base: 15px;
+  --line-height-base: 1.6;
+  --letter-spacing-base: -0.01em;
+  --font-weight-normal: 400;
+  --font-weight-semibold: 600;
 }
+
 
 @layer base {
   body {
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-weight: 400;
+    font-family: var(--font-family-primary);
+    font-weight: var(--font-weight-normal);
     font-style: normal;
-    font-size: 15px;
-    line-height: 1.6;
-    letter-spacing: -0.01em;
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-base);
+    letter-spacing: var(--letter-spacing-base);
     color: rgb(var(--foreground-rgb));
     background: rgb(var(--background-rgb));
     -webkit-font-smoothing: antialiased;
@@ -24,31 +33,31 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-weight: 600;
+    font-family: var(--font-family-primary);
+    font-weight: var(--font-weight-semibold);
     font-style: normal;
-    letter-spacing: -0.01em;
+    letter-spacing: var(--letter-spacing-base);
     line-height: 1.2;
   }
 }
 
-/* Typography */
+
 .font-display {
-  font-family: 'IBM Plex Sans', sans-serif;
-  letter-spacing: -0.01em;
+  font-family: var(--font-family-primary);
+  letter-spacing: var(--letter-spacing-base);
 }
 
 .font-body {
-  font-family: 'IBM Plex Sans', sans-serif;
-  letter-spacing: -0.01em;
+  font-family: var(--font-family-primary);
+  letter-spacing: var(--letter-spacing-base);
 }
 
 .font-mono {
-  font-family: 'IBM Plex Mono', monospace;
-  letter-spacing: -0.01em;
+  font-family: var(--font-family-mono);
+  letter-spacing: var(--letter-spacing-base);
 }
 
-/* Animations */
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -64,17 +73,18 @@
   animation: fadeIn 0.5s ease-out forwards;
 }
 
-/* Hide scrollbar but maintain functionality */
+
+
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;     /* Firefox */
+  -ms-overflow-style: none; 
+  scrollbar-width: none;     
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none;             /* Chrome, Safari and Opera */
+  display: none;             
 }
 
-/* Custom Scrollbar */
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

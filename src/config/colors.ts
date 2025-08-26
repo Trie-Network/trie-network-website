@@ -1,136 +1,173 @@
-export const colors = {
 
-  brand: {
-    primary: '#0284a5',
-    primaryHover: '#026d8a',
-    primaryLight: 'rgba(6, 182, 212, 0.1)',
-    teal: '#19A7C7',
-    tealDark: '#0196B7',
-    tealDarker: '#017a99',
-  },
 
-  ui: {
-    background: '#f6f6f7',
-    backgroundSecondary: '#111315',
-    backgroundTertiary: '#141414',
-    white: '#ffffff',
+import { isMainnet } from './network';
 
-    slate: {
-      50: '#f8fafc',
-      100: '#f1f5f9',
-      200: '#e2e8f0',
-      300: '#cbd5e1',
-      400: '#94a3b8',
-      500: '#64748b',
-      600: '#475569',
-      700: '#334155',
-      800: '#1e293b',
-      900: '#0f172a',
-    },
-  },
 
-  text: {
-    primary: '#FFFFFF',
-    secondary: '#A1A1AA',
-    tertiary: '#71717A',
-    dark: '#1e293b',
-  },
+interface NetworkColorScheme {
+  primary: string;
+  primaryHover: string;
+  primaryRgb: string;
+}
 
-  border: {
-    default: '#1F1F1F',
-    light: '#2D2D2D',
-    slate: {
-      100: '#f1f5f9',
-      200: '#e2e8f0',
-    },
-  },
+interface ColorUtility {
+  getPrimaryColor: () => string;
+  getHoverColor: () => string;
+  getRgbColor: () => string;
+  getColorScheme: () => NetworkColorScheme;
+}
 
-  status: {
-    success: '#22C55E',
-    successLight: '#dcfce7',
-    successDark: '#15803D',
-    warning: '#F59E0B',
-    warningLight: '#fef3c7',
-    warningDark: '#B45309',
-    error: '#EF4444',
-    errorLight: '#fee2e2',
-    errorDark: '#B91C1C',
-  },
+interface ColorValidation {
+  isValidHexColor: (color: string) => boolean;
+  isValidRgbColor: (color: string) => boolean;
+  validateColorScheme: (scheme: NetworkColorScheme) => boolean;
+}
 
-  accent: {
-    blue: '#3B82F6',
-    purple: '#8B5CF6',
-    pink: '#EC4899',
-  },
+
+const MAINNET_COLORS: NetworkColorScheme = {
+  primary: '#a86e27',
+  primaryHover: '#b3c92f',
+  primaryRgb: '197, 219, 53'
 } as const;
 
-export const getTailwindClass = {
-
-  bg: {
-    white: 'bg-white',
-    slate50: 'bg-slate-50',
-    slate100: 'bg-slate-100',
-    slate200: 'bg-slate-200',
-    primary: 'bg-primary',
-    primaryLight: 'bg-primary-light',
-    error: 'bg-error',
-    errorLight: 'bg-error/10',
-    warningLight: 'bg-warning/10',
-  },
-
-  text: {
-    primary: 'text-primary',
-    slate400: 'text-slate-400',
-    slate500: 'text-slate-500',
-    slate600: 'text-slate-600',
-    slate700: 'text-slate-700',
-    slate800: 'text-slate-800',
-    error: 'text-error',
-    warning: 'text-warning',
-    white: 'text-white',
-  },
-
-  border: {
-    slate100: 'border-slate-100',
-    slate200: 'border-slate-200',
-    primary: 'border-primary',
-    error: 'border-error',
-    warning: 'border-warning',
-  },
-
-  ring: {
-    primary: 'ring-primary',
-    error: 'ring-error',
-    warning: 'ring-warning',
-  },
+const TESTNET_COLORS: NetworkColorScheme = {
+  primary: '#0284a5',
+  primaryHover: '#0276a4',
+  primaryRgb: '2, 132, 165'
 } as const;
 
-export const colorCombos = {
-
-  card: {
-    default: 'bg-white border border-slate-100',
-    hover: 'hover:border-primary hover:shadow-md',
-    active: 'bg-primary-light border-primary',
-  },
-
-  button: {
-    primary: 'bg-primary hover:bg-primary-hover text-white',
-    secondary: 'bg-white border border-slate-200 text-slate-600 hover:text-primary hover:border-primary',
-    ghost: 'text-slate-500 hover:text-primary hover:bg-slate-50',
-    danger: 'bg-error hover:bg-error/90 text-white',
-  },
-
-  input: {
-    default: 'border-slate-200 focus:ring-primary focus:border-transparent',
-    error: 'border-error focus:ring-error',
-    warning: 'border-warning focus:ring-warning',
-  },
-
-  badge: {
-    primary: 'bg-primary-light text-primary',
-    slate: 'bg-slate-100 text-slate-600',
-    success: 'bg-success-light text-success-dark',
-    warning: 'bg-warning-light text-warning-dark',
-    error: 'bg-error-light text-error-dark',
-  },
+const COLOR_CONFIG = {
+  defaultNetwork: 'testnet',
+  fallbackColor: '#0284a5',
+  fallbackHoverColor: '#0276a4',
+  fallbackRgbColor: '2, 132, 165'
 } as const;
+
+const COLOR_VALIDATION = {
+  hexColorRegex: /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/,
+  rgbColorRegex: /^\d{1,3},\s*\d{1,3},\s*\d{1,3}$/
+} as const;
+
+
+const colorUtils = {
+
+  getCurrentColorScheme: (): NetworkColorScheme => {
+    return isMainnet ? MAINNET_COLORS : TESTNET_COLORS;
+  },
+
+
+  getPrimaryColor: (): string => {
+    return colorUtils.getCurrentColorScheme().primary;
+  },
+
+
+  getHoverColor: (): string => {
+    return colorUtils.getCurrentColorScheme().primaryHover;
+  },
+
+
+  getRgbColor: (): string => {
+    return colorUtils.getCurrentColorScheme().primaryRgb;
+  },
+
+
+  getColorScheme: (): NetworkColorScheme => {
+    return colorUtils.getCurrentColorScheme();
+  },
+
+
+  isValidHexColor: (color: string): boolean => {
+    return COLOR_VALIDATION.hexColorRegex.test(color);
+  },
+
+
+  isValidRgbColor: (color: string): boolean => {
+    if (!COLOR_VALIDATION.rgbColorRegex.test(color)) {
+      return false;
+    }
+    
+    const rgbValues = color.split(',').map(val => parseInt(val.trim()));
+    return rgbValues.every(val => val >= 0 && val <= 255);
+  },
+
+
+  validateColorScheme: (scheme: NetworkColorScheme): boolean => {
+    return (
+      colorUtils.isValidHexColor(scheme.primary) &&
+      colorUtils.isValidHexColor(scheme.primaryHover) &&
+      colorUtils.isValidRgbColor(scheme.primaryRgb)
+    );
+  },
+
+
+  getFallbackColor: (): string => {
+    const currentColor = colorUtils.getPrimaryColor();
+    return colorUtils.isValidHexColor(currentColor) ? currentColor : COLOR_CONFIG.fallbackColor;
+  },
+
+
+  getFallbackHoverColor: (): string => {
+    const currentHoverColor = colorUtils.getHoverColor();
+    return colorUtils.isValidHexColor(currentHoverColor) ? currentHoverColor : COLOR_CONFIG.fallbackHoverColor;
+  },
+
+  
+  getFallbackRgbColor: (): string => {
+    const currentRgbColor = colorUtils.getRgbColor();
+    return colorUtils.isValidRgbColor(currentRgbColor) ? currentRgbColor : COLOR_CONFIG.fallbackRgbColor;
+  },
+
+  
+  hexToRgb: (hex: string): string => {
+    if (!colorUtils.isValidHexColor(hex)) {
+      return COLOR_CONFIG.fallbackRgbColor;
+    }
+    
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (result) {
+      const r = parseInt(result[1], 16);
+      const g = parseInt(result[2], 16);
+      const b = parseInt(result[3], 16);
+      return `${r}, ${g}, ${b}`;
+    }
+    
+    return COLOR_CONFIG.fallbackRgbColor;
+  },
+
+  
+  rgbToHex: (rgb: string): string => {
+    if (!colorUtils.isValidRgbColor(rgb)) {
+      return COLOR_CONFIG.fallbackColor;
+    }
+    
+    const rgbValues = rgb.split(',').map(val => parseInt(val.trim()));
+    const r = rgbValues[0];
+    const g = rgbValues[1];
+    const b = rgbValues[2];
+    
+    return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+  }
+} as const;
+
+
+export const NETWORK_COLORS: NetworkColorScheme = colorUtils.getCurrentColorScheme();
+
+
+export const getNetworkColor = (): string => colorUtils.getPrimaryColor();
+export const getNetworkHoverColor = (): string => colorUtils.getHoverColor();
+export const getNetworkRgbColor = (): string => colorUtils.getRgbColor();
+
+
+export { 
+  colorUtils, 
+  MAINNET_COLORS, 
+  TESTNET_COLORS, 
+  COLOR_CONFIG, 
+  COLOR_VALIDATION 
+};
+
+
+export type { 
+  NetworkColorScheme, 
+  ColorUtility, 
+  ColorValidation 
+};

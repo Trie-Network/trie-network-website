@@ -1,11 +1,20 @@
 import { DatasetUploadView } from '../dashboard';
 import { useCompTheme } from '@/contexts/compTheme';
 
-export default function CompUploadDS() {
 
+interface CompUploadDSProps {
+  
+}
+
+
+export default function CompUploadDS(props: CompUploadDSProps) {
+   
     const { primaryColor, compId } = useCompTheme();
 
     return (
-        <DatasetUploadView primaryColor={primaryColor} compId={compId} />
-    )
+        <DatasetUploadView 
+            primaryColor={primaryColor} 
+            compId={compId} 
+        />
+    );
 }

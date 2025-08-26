@@ -38,6 +38,8 @@ export interface Model {
   license?: string;
 }
 
+
+
 export interface InfraProvider extends Model {
   region: string;
   specs: {

@@ -1,148 +1,195 @@
-import axios from 'axios';
-import api, { API_ENDPOINTS, ServiceType } from './axios';
 
-interface GetNftsByDidParams {
+import axios from "axios";
+import api from "./axios";
+import { API_PORTS } from '@/config/network';
+
+
+export interface AuthPayload {
+    did?: string;
+    signature?: string;
+    message?: string;
+    [key: string]: any;
+}
+
+export interface NFTParams {
+    id?: string;
+    did?: string;
+    [key: string]: any;
+}
+
+export interface CreditPayload {
     did: string;
     [key: string]: any;
 }
 
-interface GetMetaByNftIdParams {
-    id: string;
-}
-
-interface GetUsageHistoryParams {
-    nft: string;
-}
-
-interface AuthenticationPayload {
-    did?: string;
-    token?: string;
-    wallet?: string;
+export interface UploadData {
+    files?: File[];
+    metadata?: any;
     [key: string]: any;
 }
 
-interface GetRatingByAssetParams {
-    asset?: string;
-    asset_id?: string;
-    [key: string]: any;
-}
-
-interface RequestFtParams {
-    amount?: number;
-    recipient?: string;
-    username?: string;
-    ftCount?: number;
-    [key: string]: any;
-}
-
-declare module 'axios' {
-    export interface AxiosRequestConfig {
-        serviceType?: ServiceType;
-    }
-}
 
 export const COMP_SERVER = {
+    authDid: (payload: AuthPayload) => {
+        return axios.post(`${API_PORTS.comp}/did`, payload);
+    },
+    
+    authenticate: (payload: AuthPayload) => {
+        return axios.post(`${API_PORTS.comp}/authenticate`, payload);
+    }
+} as const;
 
-    authDid: (payload: AuthenticationPayload) => {
-        return axios.post(`${API_ENDPOINTS.comp}/did`, payload);
+const NFT_ENDPOINTS = {
+    getNftsByDid: (params: NFTParams) => {
+        return api.get('get-nfts-by-did', {
+            params,
+            serviceType: "node"
+        } as any);
     },
 
-    authenticate: (payload: AuthenticationPayload) => {
-        return axios.post(`${API_ENDPOINTS.comp}/authenticate`, payload);
+    getMetaByNftId: (params: NFTParams) => {
+        return api.get(`upload_asset/get_artifact_info_by_cid/${params?.id}`, {
+            serviceType: 'dapp'
+        } as any);
+    },
+
+    getArtifactByNftId: (params: NFTParams) => {
+        return api.get(`upload_asset/get_artifact_file_name/${params?.id}`, {
+            serviceType: 'dapp'
+        } as any);
+    },
+
+    getUsageHistory: (params: NFTParams) => {
+        return api.get(`get-nft-token-chain-data`, {
+            params,
+            serviceType: "node"
+        } as any);
+    },
+
+    listNfts: () => {
+        return api.get(`list-nfts`, {
+            serviceType: "node"
+        } as any);
+    },
+
+    downloadArtifact: (params: NFTParams) => {
+        return api.get(`download_artifact/${params?.id}`, {
+            serviceType: "dapp"
+        } as any);
     }
-};
+} as const;
+
+const ASSET_ENDPOINTS = {
+    uploadFiles: (data: UploadData) => {
+        return api.post(`upload_asset/upload_artifacts`, data, { 
+            serviceType: "dapp" 
+        } as any);
+    },
+
+    getRatingByAsset: (params: NFTParams) => {
+        return api.get(`get_rating_by_asset`, {
+            params,
+            serviceType: "dapp"
+        } as any);
+    },
+
+    uploadObj: (url: string, fd: FormData) => {
+        return axios.post(url, fd);
+    }
+} as const;
+
+
+const FT_ENDPOINTS = {
+    getFtInfoByDid: (params: NFTParams) => {
+        return api.get(`get-ft-info-by-did`, {
+            params,
+            serviceType: "node"
+        } as any);
+    },
+
+    requestFt: (params: NFTParams) => {
+        return api.post(`increment`, params, {
+            serviceType: "faucet"
+        } as any);
+    }
+} as const;
+
+
+const PROVIDER_ENDPOINTS = {
+    getProviders: () => {
+        return api.get(`onboarded_providers`, {
+            serviceType: "dapp"
+        } as any);
+    }
+} as const;
+
+
+const METRICS_ENDPOINTS = {
+    getAssetCount: () => {
+        return api.get(`metrics/asset_count`, {
+            serviceType: "metrics"
+        } as any);
+    },
+
+    getTransactionCount: () => {
+        return api.get(`metrics/transaction_count`, {
+            serviceType: "metrics"
+        } as any);
+    }
+} as const;
+
+
+const CREDIT_ENDPOINTS = {
+    getCreditBalanceByDid: (did: string) => {
+        return api.get(`credit_balance/${did}`, {
+            serviceType: 'dapp'
+        } as any);
+    },
+
+    deductCredits: (payload: CreditPayload) => {
+        return api.post(`deduct_credits`, payload, {
+            serviceType: 'dapp'
+        } as any);
+    }
+} as const;
+
 
 export const END_POINTS = {
 
-    get_nfts_by_did: (params: GetNftsByDidParams) => {
-        return api.get('get-nfts-by-did', {
-            params,
-            serviceType: 'node'
-        });
-    },
+    get_nfts_by_did: NFT_ENDPOINTS.getNftsByDid,
+    get_meta_by_nft_id: NFT_ENDPOINTS.getMetaByNftId,
+    get_articfact_by_nft_id: NFT_ENDPOINTS.getArtifactByNftId,
+    get_usage_history: NFT_ENDPOINTS.getUsageHistory,
+    list_nfts: NFT_ENDPOINTS.listNfts,
+    download_artifact: NFT_ENDPOINTS.downloadArtifact,
 
-    get_meta_by_nft_id: (params: GetMetaByNftIdParams) => {
-        return api.get(`upload_asset/get_artifact_info_by_cid/${params.id}`, {
-            serviceType: 'dapp'
-        });
-    },
 
-    get_artifact_by_nft_id: (params: GetMetaByNftIdParams) => {
-        return api.get(`upload_asset/get_artifact_file_name/${params.id}`, {
-            serviceType: 'dapp'
-        });
-    },
+    upload_files: ASSET_ENDPOINTS.uploadFiles,
+    get_rating_by_asset: ASSET_ENDPOINTS.getRatingByAsset,
+    upload_obj: ASSET_ENDPOINTS.uploadObj,
 
-    get_usage_history: (params: GetUsageHistoryParams) => {
-        return api.get('get-nft-token-chain-data', {
-            params,
-            serviceType: 'node'
-        });
-    },
 
-    list_nfts: () => {
-        return api.get('list-nfts', {
-            serviceType: 'node'
-        });
-    },
+    get_ft_info_by_did: FT_ENDPOINTS.getFtInfoByDid,
+    request_ft: FT_ENDPOINTS.requestFt,
 
-    upload_files: (data: FormData) => {
-        return api.post('upload_asset/upload_artifacts', data, {
-            serviceType: 'dapp'
-        });
-    },
 
-    download_artifact: (params: GetMetaByNftIdParams) => {
-        return api.get(`download_artifact/${params.id}`, {
-            serviceType: 'dapp'
-        });
-    },
+    providers: PROVIDER_ENDPOINTS.getProviders,
 
-    get_ft_info_by_did: (params: GetNftsByDidParams) => {
-        return api.get('get-ft-info-by-did', {
-            params,
-            serviceType: 'node'
-        });
-    },
 
-    request_ft: (params: RequestFtParams) => {
-        return api.post('increment', params, {
-            serviceType: 'faucet'
-        });
-    },
+    get_asset_count: METRICS_ENDPOINTS.getAssetCount,
+    get_transaction_count: METRICS_ENDPOINTS.getTransactionCount,
 
-    providers: () => {
-        return api.get('onboarded_providers', {
-            serviceType: 'dapp'
-        });
-    },
 
-    get_rating_by_asset: (params: GetRatingByAssetParams) => {
-        return api.get('get_rating_by_asset', {
-            params,
-            serviceType: 'dapp'
-        });
-    },
+    get_credit_balance_by_did: CREDIT_ENDPOINTS.getCreditBalanceByDid,
+    deduct_credits: CREDIT_ENDPOINTS.deductCredits
+} as const;
 
-    get_asset_count: () => {
-        return api.get('metrics/asset_count', {
-            serviceType: 'metrics'
-        });
-    },
 
-    get_transaction_count: () => {
-        return api.get('metrics/transaction_count', {
-            serviceType: 'metrics'
-        });
-    },
-
-    upload_obj: (url: string, formData: FormData) => {
-        return axios.post(url, formData);
-    },
-
-    get_credit_balance_by_did: (did: string) => {
-        return api.get(`credit_balance/${did}`, {
-            serviceType: 'dapp'
-        });
-    }
+export {
+    NFT_ENDPOINTS,
+    ASSET_ENDPOINTS,
+    FT_ENDPOINTS,
+    PROVIDER_ENDPOINTS,
+    METRICS_ENDPOINTS,
+    CREDIT_ENDPOINTS
 };
