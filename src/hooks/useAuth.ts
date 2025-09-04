@@ -19,19 +19,21 @@
 
 import { useContext, useMemo, useCallback } from 'react';
 import { AuthContext } from '@/contexts/auth';
-
+import { AuthContextType, AuthError, AuthValidationResult } from '@/types/auth';
 
 interface UseAuthOptions {
   readonly enableValidation?: boolean;
   readonly enableDebugging?: boolean;
-  readonly fallbackValue?: any;
+  readonly fallbackValue?: AuthContextType | null;
+  readonly onError?: (error: AuthError) => void;
 }
 
 interface UseAuthReturn {
-  readonly context: any;
+  readonly context: AuthContextType | null;
   readonly isValid: boolean;
-  readonly error: string | null;
-  readonly debugInfo: DebugInfo;
+  readonly error: AuthError | null;
+  readonly debugInfo: DebugInfo | null;
+  readonly validationResult: AuthValidationResult;
 }
 
 interface DebugInfo {
@@ -51,9 +53,10 @@ interface AuthHookMetadata {
 
 interface AuthHookUtility {
   readonly getHookMetadata: () => AuthHookMetadata;
-  readonly validateAuthContext: (context: any) => boolean;
+  readonly validateAuthContext: (context: AuthContextType | null) => AuthValidationResult;
   readonly createDebugInfo: (options: UseAuthOptions) => DebugInfo;
   readonly getHookStats: () => AuthHookStats;
+  readonly createAuthError: (code: AuthError['code'], message: string, details?: string) => AuthError;
 }
 
 interface AuthHookStats {
@@ -62,7 +65,6 @@ interface AuthHookStats {
   failedCalls: number;
   lastUpdated: string;
 }
-
 
 const AUTH_HOOK_METADATA: AuthHookMetadata = {
   version: '1.0.0',
@@ -78,7 +80,6 @@ const AUTH_HOOK_METADATA: AuthHookMetadata = {
   dependencies: ['react', 'auth-context']
 } as const;
 
-
 let hookStats: AuthHookStats = {
   totalCalls: 0,
   successfulCalls: 0,
@@ -86,30 +87,66 @@ let hookStats: AuthHookStats = {
   lastUpdated: new Date().toISOString()
 };
 
-
 const authHookUtils: AuthHookUtility = {
- 
   getHookMetadata: (): AuthHookMetadata => {
     return AUTH_HOOK_METADATA;
   },
 
- 
-  validateAuthContext: (context: any): boolean => {
+  validateAuthContext: (context: AuthContextType | null): AuthValidationResult => {
+    const errors: AuthError[] = [];
+    const warnings: string[] = [];
+
     if (!context) {
-      return false;
+      errors.push({
+        code: 'CONTEXT_MISSING',
+        message: 'Authentication context is not available',
+        details: 'useAuth must be used within an AuthProvider',
+        timestamp: new Date().toISOString()
+      });
+      return { isValid: false, errors, warnings };
     }
 
-  
-    const hasValidStructure = typeof context === 'object' && 
-      (context.isAuthenticated !== undefined || 
-       context.login !== undefined || 
-       context.logout !== undefined ||
-       context.connectedWallet !== undefined);
+    // Check for required authentication properties
+    const requiredProps: (keyof AuthContextType)[] = [
+      'isAuthenticated',
+      'login',
+      'logout',
+      'connectWallet',
+      'connectedWallet'
+    ];
+
+    const missingProps = requiredProps.filter(prop => context[prop] === undefined);
     
-    return hasValidStructure;
+    if (missingProps.length > 0) {
+      errors.push({
+        code: 'INVALID_CONTEXT',
+        message: 'Authentication context is missing required properties',
+        details: `Missing: ${missingProps.join(', ')}`,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check for wallet connection issues
+    if (context.isAuthenticated && !context.connectedWallet) {
+      warnings.push('User is authenticated but no wallet is connected');
+    }
+
+    // Check for authentication method availability
+    if (typeof context.login !== 'function') {
+      warnings.push('Login method is not properly implemented');
+    }
+
+    if (typeof context.logout !== 'function') {
+      warnings.push('Logout method is not properly implemented');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings
+    };
   },
 
- 
   createDebugInfo: (options: UseAuthOptions): DebugInfo => {
     return {
       hookName: 'useAuth',
@@ -120,82 +157,100 @@ const authHookUtils: AuthHookUtility = {
     };
   },
 
- 
   getHookStats: (): AuthHookStats => {
     return { ...hookStats };
+  },
+
+  createAuthError: (code: AuthError['code'], message: string, details?: string): AuthError => {
+    return {
+      code,
+      message,
+      details,
+      timestamp: new Date().toISOString()
+    };
   }
 } as const;
 
-
-export function useAuth(options: UseAuthOptions = {}): any {
+/**
+ * Main useAuth hook with comprehensive error handling and validation
+ * @param options - Configuration options for the hook
+ * @returns The authentication context with validation results
+ */
+export function useAuth(options: UseAuthOptions = {}): AuthContextType {
   const {
     enableValidation = true,
     enableDebugging = false,
-    fallbackValue = null
+    fallbackValue = null,
+    onError
   } = options;
 
-  
   hookStats.totalCalls++;
   hookStats.lastUpdated = new Date().toISOString();
 
-  
   const context = useContext(AuthContext);
-  
-  
-  const isValid = useMemo(() => {
-    if (!enableValidation) return true;
+
+  const validationResult = useMemo(() => {
+    if (!enableValidation) {
+      return { isValid: true, errors: [], warnings: [] };
+    }
     return authHookUtils.validateAuthContext(context);
   }, [context, enableValidation]);
 
-  
   const error = useMemo(() => {
     if (!context) {
-      return 'useAuth must be used within an AuthProvider';
+      const authError = authHookUtils.createAuthError(
+        'CONTEXT_MISSING',
+        'useAuth must be used within an AuthProvider'
+      );
+      return authError;
     }
     
-    if (enableValidation && !isValid) {
-      return 'Invalid authentication context structure';
+    if (enableValidation && !validationResult.isValid) {
+      return validationResult.errors[0] || null;
     }
     
     return null;
-  }, [context, isValid, enableValidation]);
+  }, [context, validationResult, enableValidation]);
 
-  
   const debugInfo = useMemo(() => {
-    if (!enableDebugging) {
-      return null;
-    }
+    if (!enableDebugging) return null;
     return authHookUtils.createDebugInfo(options);
   }, [enableDebugging, options]);
 
-  
   if (error) {
     hookStats.failedCalls++;
     
+    // Call error callback if provided
+    if (onError) {
+      onError(error);
+    }
+    
     if (fallbackValue !== null) {
-      
       return fallbackValue;
     }
     
-    throw new Error(error);
+    throw new Error(`${error.code}: ${error.message}${error.details ? ` - ${error.details}` : ''}`);
   }
 
-  
   hookStats.successfulCalls++;
 
-  
   if (enableDebugging && debugInfo) {
+    // Return context with debug information attached
     return {
-      ...context,
+      ...context!,
       _debug: debugInfo,
-      _isValid: isValid
-    };
+      _isValid: validationResult.isValid
+    } as AuthContextType & { _debug: DebugInfo; _isValid: boolean };
   }
 
-  return context;
+  return context!;
 }
 
-
+/**
+ * Enhanced useAuth hook that returns validation details and error information
+ * @param options - Configuration options for the hook
+ * @returns Object containing context, validation results, and error information
+ */
 export function useAuthEnhanced(options: UseAuthOptions = {}): UseAuthReturn {
   const {
     enableValidation = true,
@@ -203,58 +258,102 @@ export function useAuthEnhanced(options: UseAuthOptions = {}): UseAuthReturn {
     fallbackValue = null
   } = options;
 
-  
   const context = useContext(AuthContext);
-  
-  
-  const isValid = useMemo(() => {
-    if (!enableValidation) return true;
+
+  const validationResult = useMemo(() => {
+    if (!enableValidation) {
+      return { isValid: true, errors: [], warnings: [] };
+    }
     return authHookUtils.validateAuthContext(context);
   }, [context, enableValidation]);
 
-  
   const error = useMemo(() => {
     if (!context) {
-      return 'useAuth must be used within an AuthProvider';
+      return authHookUtils.createAuthError(
+        'CONTEXT_MISSING',
+        'useAuth must be used within an AuthProvider'
+      );
     }
     
-    if (enableValidation && !isValid) {
-      return 'Invalid authentication context structure';
+    if (enableValidation && !validationResult.isValid) {
+      return validationResult.errors[0] || null;
     }
     
     return null;
-  }, [context, isValid, enableValidation]);
+  }, [context, validationResult, enableValidation]);
 
-  
   const debugInfo = useMemo(() => {
     return authHookUtils.createDebugInfo(options);
   }, [options]);
 
   return {
     context: context || fallbackValue,
-    isValid,
+    isValid: validationResult.isValid,
     error,
-    debugInfo
+    debugInfo,
+    validationResult
   };
 }
 
-
-export function useAuthSimple(): any {
+/**
+ * Simple useAuth hook with minimal validation and error handling
+ * @returns The authentication context or throws an error if not available
+ */
+export function useAuthSimple(): AuthContextType {
   const context = useContext(AuthContext);
   
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    const error = authHookUtils.createAuthError(
+      'CONTEXT_MISSING',
+      'useAuth must be used within an AuthProvider'
+    );
+    throw new Error(`${error.code}: ${error.message}`);
   }
   
   return context;
 }
 
+/**
+ * Hook for handling authentication errors with custom error handling
+ * @param onError - Callback function for handling authentication errors
+ * @returns Object with error handling utilities
+ */
+export function useAuthErrorHandler(onError?: (error: AuthError) => void) {
+  const handleAuthError = useCallback((error: AuthError) => {
+    if (onError) {
+      onError(error);
+    } else {
+      console.error('Authentication error:', error);
+    }
+  }, [onError]);
+
+  const createWalletConnectionError = useCallback((details?: string) => {
+    return authHookUtils.createAuthError(
+      'WALLET_CONNECTION_FAILED',
+      'Failed to connect wallet',
+      details
+    );
+  }, []);
+
+  const createAuthenticationError = useCallback((details?: string) => {
+    return authHookUtils.createAuthError(
+      'AUTHENTICATION_FAILED',
+      'Authentication failed',
+      details
+    );
+  }, []);
+
+  return {
+    handleAuthError,
+    createWalletConnectionError,
+    createAuthenticationError
+  };
+}
 
 export { 
   authHookUtils, 
   AUTH_HOOK_METADATA
 };
-
 
 export type { 
   UseAuthOptions, 

@@ -1,3 +1,3 @@
 
 export * from './PlayGround';
-export * from './Components';
+export * from './UIComponents';
