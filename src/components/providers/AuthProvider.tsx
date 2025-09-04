@@ -1,15 +1,16 @@
-import { ReactNode, useRef } from 'react';
+import { ReactNode, useRef, useMemo, useReducer } from 'react';
 import { AuthContext } from '@/contexts/auth';
 import { useState, useCallback, useEffect } from 'react';
 import { WalletService, WalletType } from '@/services/wallet';
 import { END_POINTS } from '@/api/requests';
 import { fetchInferenceBalance } from '@/utils/balanceUtils';
-import { X } from 'lucide-react';
+import { WebSocketMessage } from '@/types/ws';
+import { deployNFT, transferFT, executeNFT, executeTokens } from '@/services/walletActions';
 import { CONSTANTS, API_PORTS } from '@/config/network';
-import { getNetworkColor, getNetworkHoverColor } from '../../config/colors';
 import { STORAGE_KEYS, storageUtils } from '@/constants/storage';
 import { useLoader } from '@/contexts/LoaderContext';
 import { toast } from 'react-hot-toast';
+import ExtensionModal from '@/components/ui/ExtensionModal';
 
 
 interface AuthProviderProps {
@@ -26,42 +27,11 @@ interface ConnectedWallet {
   username: string;
 }
 
-interface NFTData {
-  nft: string;
-  nft_metadata: string;
-  metadata?: Record<string, any>;
-  usageHistory?: any[];
-}
+import { NFTData } from '@/types/nft';
 
-interface InfraProvider {
-  storage: string;
-  memory: string;
-  os: string;
-  core: string;
-  gpu: string;
-  processor: string;
-  region: string;
-  hostingCost: number;
-  platformName: string;
-  providerName: string;
-  platformImageUri: string;
-  platformDescription: string;
-  providerDid: string;
-}
+import { InfraProvider, GroupedInfraProvider, groupByPlatformName } from '@/utils/providers';
 
-interface GroupedInfraProvider {
-  name: string;
-  description: string;
-  providers: InfraProvider[];
-}
-
-interface WebSocketMessage {
-  type: string;
-  data?: {
-    action: string;
-    payload: any;
-  };
-}
+// WebSocketMessage type moved to src/types/ws.ts
 
 interface AddCreditPayload {
   add_credit: {
@@ -78,12 +48,7 @@ interface AddCreditExecuteData {
   smartContractToken: string;
 }
 
-interface ExtensionModalProps {
-  show: boolean;
-  onClose: () => void;
-  onInstallExtension: () => void;
-  onReloadPage: () => void;
-}
+// moved to components/ui/ExtensionModal
 
 interface WebSocketHandlerProps {
   data: WebSocketMessage;
@@ -119,21 +84,7 @@ const WEBSOCKET_MESSAGE_TYPES = {
   HELLO: 'hello'
 } as const;
 
-const LAYOUT_CLASSES = {
-  modal: {
-    overlay: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50',
-    container: 'bg-gray-800 rounded-lg p-6 max-w-md w-full relative',
-    closeButton: 'absolute top-4 right-4 text-gray-400 hover:text-white',
-    content: 'text-center mb-6',
-    icon: 'w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4',
-    title: 'text-white text-xl font-bold font-[\'IBM_Plex_Sans\']',
-    description: 'text-gray-300 mt-2 font-[\'IBM_Plex_Sans\']',
-    buttonContainer: 'flex flex-col space-y-3',
-    primaryButton: 'w-full py-3 bg-white text-black font-semibold rounded-lg hover:bg-gray-200 transition-colors font-[\'IBM_Plex_Sans\']',
-    secondaryButton: 'w-full py-3 text-white font-semibold rounded-lg transition-colors font-[\'IBM_Plex_Sans\']',
-    cancelButton: 'w-full py-3 bg-transparent border border-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors font-[\'IBM_Plex_Sans\']'
-  }
-} as const;
+// layout classes moved with the modal
 
 const TOAST_MESSAGES = {
   CREDIT_ADDITION_SUCCESS: 'Credit added successfully',
@@ -166,47 +117,9 @@ const createAddCreditExecuteData = (payload: AddCreditPayload, userDid: string):
   smartContractToken: CONSTANTS.TOPUP_TOKEN
 });
 
-const groupByPlatformName = (infraProviders: InfraProvider[]): GroupedInfraProvider[] => {
-  const grouped = infraProviders.reduce((acc, provider) => {
-    if (!acc[provider.platformName]) {
-      acc[provider.platformName] = {
-        name: provider.platformName,
-        description: provider.platformDescription,
-        providers: []
-      };
-    }
-    acc[provider.platformName].providers.push(provider);
-    return acc;
-  }, {} as Record<string, GroupedInfraProvider>);
+// moved to utils/providers
 
-  return Object.values(grouped);
-};
-
-const parseNFTMetadata = (nft: NFTData): NFTData => {
-  try {
-    return {
-      ...nft,
-      metadata: JSON.parse(nft.nft_metadata || '{}')
-    };
-  } catch (error) {
-    return {
-      ...nft,
-      metadata: {}
-    };
-  }
-};
-
-const filterNFTsByCompetition = (nfts: NFTData[], compId: string): NFTData[] => {
-  return nfts.filter(item => 
-    item && item.metadata && item.metadata.compId === compId
-  );
-};
-
-const filterNonCompetitionNFTs = (nfts: NFTData[]): NFTData[] => {
-  return nfts.filter(item => 
-    item && item.metadata && !item.metadata.compId
-  ).reverse();
-};
+import { parseNFTMetadata, filterNFTsByCompetition, filterNonCompetitionNFTs } from '@/utils/nft';
 
 const isExcludedPath = (path: string): boolean => {
   return EXCLUDED_PATHS.includes(path);
@@ -241,64 +154,7 @@ const dispatchInferenceBalanceEvent = (balance: number): void => {
 };
 
 
-const ExtensionModal: React.FC<ExtensionModalProps> = ({
-  show,
-  onClose,
-  onInstallExtension,
-  onReloadPage
-}) => {
-  if (!show) return null;
-
-  return (
-    <div className={LAYOUT_CLASSES.modal.overlay}>
-      <div className={LAYOUT_CLASSES.modal.container}>
-        <button onClick={onClose} className={LAYOUT_CLASSES.modal.closeButton}>
-          <X className="w-5 h-5" />
-        </button>
-
-        <div className={LAYOUT_CLASSES.modal.content}>
-          <div className={LAYOUT_CLASSES.modal.icon}>
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h3 className={LAYOUT_CLASSES.modal.title}>
-            Wallet Connection Issue
-          </h3>
-          <p className={LAYOUT_CLASSES.modal.description}>
-            There seems to be an issue with the XELL wallet connection. You may need to install the extension or reload the page to continue.
-          </p>
-        </div>
-
-        <div className={LAYOUT_CLASSES.modal.buttonContainer}>
-          <button
-            onClick={onInstallExtension}
-            className={LAYOUT_CLASSES.modal.primaryButton}
-          >
-            Install Extension
-          </button>
-
-          <button
-            onClick={onReloadPage}
-            className={LAYOUT_CLASSES.modal.secondaryButton}
-            style={{ backgroundColor: getNetworkColor() }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = getNetworkHoverColor()}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = getNetworkColor()}
-          >
-            Reload Page
-          </button>
-
-          <button
-            onClick={onClose}
-            className={LAYOUT_CLASSES.modal.cancelButton}
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+// ExtensionModal component extracted
 
 
 const handleDeployNFT = async (
@@ -453,17 +309,76 @@ const handleExecuteTokens = async (
 };
 
 
+type AuthState = {
+  isAuthenticated: boolean;
+  showExtensionModal: boolean;
+  connectedWallet: ConnectedWallet | null;
+  allNftData: NFTData[];
+  infraProviders: GroupedInfraProvider[];
+  loader: boolean;
+  tokenBalance: number;
+  usageHistoryLoader: boolean;
+};
+
+type AuthAction =
+  | { type: 'SET_AUTH'; payload: boolean }
+  | { type: 'SET_EXTENSION_MODAL'; payload: boolean }
+  | { type: 'SET_CONNECTED_WALLET'; payload: ConnectedWallet | null }
+  | { type: 'SET_ALL_NFTS'; payload: NFTData[] }
+  | { type: 'SET_INFRA_PROVIDERS'; payload: GroupedInfraProvider[] }
+  | { type: 'SET_LOADER'; payload: boolean }
+  | { type: 'SET_TOKEN_BALANCE'; payload: number }
+  | { type: 'SET_USAGE_HISTORY_LOADER'; payload: boolean }
+  | { type: 'RESET' };
+
+const initialAuthState: AuthState = {
+  isAuthenticated: false,
+  showExtensionModal: false,
+  connectedWallet: null,
+  allNftData: [],
+  infraProviders: [],
+  loader: false,
+  tokenBalance: 0,
+  usageHistoryLoader: false
+};
+
+function authReducer(state: AuthState, action: AuthAction): AuthState {
+  switch (action.type) {
+    case 'SET_AUTH':
+      return { ...state, isAuthenticated: action.payload };
+    case 'SET_EXTENSION_MODAL':
+      return { ...state, showExtensionModal: action.payload };
+    case 'SET_CONNECTED_WALLET':
+      return { ...state, connectedWallet: action.payload };
+    case 'SET_ALL_NFTS':
+      return { ...state, allNftData: action.payload };
+    case 'SET_INFRA_PROVIDERS':
+      return { ...state, infraProviders: action.payload };
+    case 'SET_LOADER':
+      return { ...state, loader: action.payload };
+    case 'SET_TOKEN_BALANCE':
+      return { ...state, tokenBalance: action.payload };
+    case 'SET_USAGE_HISTORY_LOADER':
+      return { ...state, usageHistoryLoader: action.payload };
+    case 'RESET':
+      return initialAuthState;
+    default:
+      return state;
+  }
+}
+
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [showExtensionModal, setShowExtensionModal] = useState(false);
-  const [connectedWallet, setConnectedWallet] = useState<ConnectedWallet | null>(null);
-  const [nftData, setNftData] = useState<NFTData[]>([]);
-  const [allNftData, setAllNftData] = useState<NFTData[]>([]);
-  const [infraProviders, setInfraProviders] = useState<GroupedInfraProvider[]>([]);
-  const [compNftData, setCompNftData] = useState<Record<string, NFTData[]>>({});
-  const [loader, setLoader] = useState<boolean>(false);
-  const [tokenBalance, setTokenBalance] = useState(0);
-  const [usageHistoryLoader, setUsageHistoryLoader] = useState(false);
+  const [state, dispatch] = useReducer(authReducer, initialAuthState);
+  const {
+    isAuthenticated,
+    showExtensionModal,
+    connectedWallet,
+    allNftData,
+    infraProviders,
+    loader,
+    tokenBalance,
+    usageHistoryLoader
+  } = state;
   
   const { 
     setUploadModelLoading, 
@@ -472,7 +387,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setBuyingTokensLoading 
   } = useLoader();
 
-  const socketRef = useRef<WebSocket | null>();
+  const socketRef = useRef<WebSocket | null>(null);
+  const reconnectAttemptsRef = useRef<number>(0);
+  const isMountedRef = useRef<boolean>(true);
   const currentPath = getCurrentPath();
 
   const triggerAddCreditContract = async (): Promise<void> => {
@@ -538,24 +455,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
       
-      setTokenBalance(parseFloat(newTrieToken?.ft_count || 0) || 0);
+      dispatch({ type: 'SET_TOKEN_BALANCE', payload: Number(newTrieToken?.ft_count) || 0 });
     } catch (error) {
       
     }
   };
 
   const connectWebSocket = (): void => {
-    const wsUrl = `${API_PORTS.websocket}?clientID=${connectedWallet?.did}`;
+    if (!connectedWallet?.did || isExcludedPath(currentPath)) return;
+
+    const wsUrl = `${API_PORTS.websocket}?clientID=${connectedWallet.did}`;
     const ws = new WebSocket(wsUrl);
     socketRef.current = ws;
 
     ws.onopen = () => {
+      reconnectAttemptsRef.current = 0;
       const initialMessage = {
         type: WEBSOCKET_MESSAGE_TYPES.HELLO,
-        clientId: "client-124",
+        clientId: connectedWallet.did,
         timestamp: Date.now(),
-      };
-      ws.send(JSON.stringify(initialMessage));
+      } as const;
+      try { ws.send(JSON.stringify(initialMessage)); } catch {}
     };
 
     ws.onmessage = async (event) => {
@@ -569,18 +489,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
           
           switch (data?.data?.action) {
             case WEBSOCKET_ACTIONS.DEPLOY_NFT:
-              await handleDeployNFT(
+              await deployNFT(
                 data?.data?.payload,
-                socketRef,
+                socketRef.current,
                 setUploadModelLoading,
                 setUploadDatasetLoading
               );
               break;
               
             case WEBSOCKET_ACTIONS.TRANSFER_FT:
-              await handleTransferFT(
+              await transferFT(
                 data?.data?.payload,
-                socketRef,
+                socketRef.current,
                 setUploadModelLoading,
                 setUploadDatasetLoading,
                 setBuyingTokensLoading,
@@ -589,20 +509,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
               break;
               
             case WEBSOCKET_ACTIONS.EXECUTE_NFT:
-              await handleExecuteNFT(
+              await executeNFT(
                 data?.data?.payload,
-                socketRef,
+                socketRef.current,
                 setBuyingAssetLoading
               );
               break;
               
             case WEBSOCKET_ACTIONS.EXECUTE_TOKENS:
-              await handleExecuteTokens(
+              await executeTokens(
                 data?.data?.payload,
-                socketRef,
+                socketRef.current,
                 setBuyingTokensLoading,
-                connectedWallet,
-                refreshBalance
+                connectedWallet?.did,
+                refreshBalance,
+                BALANCE_REFRESH_DELAY
               );
               break;
               
@@ -616,25 +537,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
 
     ws.onclose = () => {
-      setTimeout(connectWebSocket, WEBSOCKET_RECONNECT_DELAY);
+      if (!isMountedRef.current) return;
+      const attempt = reconnectAttemptsRef.current + 1;
+      reconnectAttemptsRef.current = attempt;
+      const base = 250;
+      const max = 8000;
+      const jitter = Math.floor(Math.random() * 200);
+      const delay = Math.min(base * Math.pow(2, attempt), max) + jitter;
+      setTimeout(() => {
+        if (isMountedRef.current && connectedWallet?.did && !isExcludedPath(currentPath)) {
+          connectWebSocket();
+        }
+      }, delay);
     };
 
-    ws.onerror = (error) => {
-      
+    ws.onerror = () => {
+      try { ws.close(); } catch {}
     };
   };
 
   useEffect(() => {
+    isMountedRef.current = true;
     if (connectedWallet && !isExcludedPath(currentPath)) {
       connectWebSocket();
     }
 
     return () => {
+      isMountedRef.current = false;
       if (socketRef.current) {
-        socketRef.current.close();
+        try { socketRef.current.close(); } catch {}
       }
     };
-  }, [connectedWallet]);
+  }, [connectedWallet, currentPath]);
 
   useEffect(() => {
     (async () => {
@@ -643,7 +577,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           return;
         }
         
-        setLoader(true);
+        dispatch({ type: 'SET_LOADER', payload: true });
 
         try {
           const infraProvidersResponse = await END_POINTS.providers();
@@ -651,13 +585,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
           
           if (infraProvidersData?.length > 0) {
             const groupedProviders = groupByPlatformName(infraProvidersData);
-            setInfraProviders(groupedProviders);
+            dispatch({ type: 'SET_INFRA_PROVIDERS', payload: groupedProviders });
           } else {
-            setInfraProviders([]);
+            dispatch({ type: 'SET_INFRA_PROVIDERS', payload: [] });
           }
         } catch (error) {
           
-          setInfraProviders([]);
+          dispatch({ type: 'SET_INFRA_PROVIDERS', payload: [] });
         }
 
         const getnfts = await END_POINTS.list_nfts() as any;
@@ -665,14 +599,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (getnfts?.status && getnfts?.nfts?.length > 0) {
           const nftsWithMetadata = getnfts.nfts.map(parseNFTMetadata);
 
-          setNftData(filterNonCompetitionNFTs(nftsWithMetadata));
-          setCompNftData({
-            'dallas-ai': filterNFTsByCompetition(nftsWithMetadata, 'dallas-ai')
-          });
-          setAllNftData(nftsWithMetadata.filter(item => item && item.metadata));
-          setLoader(false);
+          dispatch({ type: 'SET_ALL_NFTS', payload: nftsWithMetadata.filter(item => item && item.metadata) });
+          dispatch({ type: 'SET_LOADER', payload: false });
 
-          setUsageHistoryLoader(true);
+          dispatch({ type: 'SET_USAGE_HISTORY_LOADER', payload: true });
 
           const nftsWithHistoryResults = await Promise.allSettled(
             nftsWithMetadata.map(async (item: NFTData) => {
@@ -698,20 +628,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
             .filter(result => result.status === 'fulfilled' && result.value)
             .map(result => (result as PromiseFulfilledResult<NFTData>).value);
 
-          setNftData(filterNonCompetitionNFTs(nftsWithHistory));
-          setCompNftData({
-            'dallas-ai': filterNFTsByCompetition(nftsWithHistory, 'dallas-ai')
-          });
-          setAllNftData(nftsWithHistory.filter(item => item && item.metadata));
-          setUsageHistoryLoader(false);
+          dispatch({ type: 'SET_ALL_NFTS', payload: nftsWithHistory.filter(item => item && item.metadata) });
+          dispatch({ type: 'SET_USAGE_HISTORY_LOADER', payload: false });
         } else {
-          setNftData([]);
-          setLoader(false);
+          dispatch({ type: 'SET_ALL_NFTS', payload: [] });
+          dispatch({ type: 'SET_LOADER', payload: false });
         }
       } catch (error) {
         
-        setLoader(false);
-        setUsageHistoryLoader(false);
+        dispatch({ type: 'SET_LOADER', payload: false });
+        dispatch({ type: 'SET_USAGE_HISTORY_LOADER', payload: false });
       }
     })();
   }, []);
@@ -721,8 +647,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     if (storedWallet) {
       try {
-        setConnectedWallet(storedWallet);
-        setIsAuthenticated(true);
+        dispatch({ type: 'SET_CONNECTED_WALLET', payload: storedWallet });
+        dispatch({ type: 'SET_AUTH', payload: true });
       } catch (error) {
         
       }
@@ -734,7 +660,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     if (!isInstalled) {
       if (type === 'xell') {
-        setShowExtensionModal(true);
+        dispatch({ type: 'SET_EXTENSION_MODAL', payload: true });
       }
       return;
     }
@@ -746,10 +672,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      saveToStorage(STORAGE_KEYS.WALLET_DETAILS, {
-        type: result.type,
-        address: result.address
-      });
+      const did = result.address;
+      const username = result.username || '';
+      const wallet: StoredWalletInterface = { did, username };
+
+      dispatch({ type: 'SET_CONNECTED_WALLET', payload: wallet });
+      dispatch({ type: 'SET_AUTH', payload: true });
+      saveToStorage(STORAGE_KEYS.WALLET_DETAILS, wallet);
     } catch (error) {
         
     }
@@ -760,24 +689,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [connectWallet]);
 
   const logout = useCallback(async (): Promise<void> => {
-    setIsAuthenticated(false);
-    setConnectedWallet(null);
+    dispatch({ type: 'SET_AUTH', payload: false });
+    dispatch({ type: 'SET_CONNECTED_WALLET', payload: null });
     removeFromStorage(STORAGE_KEYS.WALLET_DETAILS);
   }, []);
 
   const handleInstallExtension = (): void => {
     window.open('https://chrome.google.com/webstore/detail/aoiajendlccnpnbaabjipmaobbjllijb', '_blank');
-    setShowExtensionModal(false);
+    dispatch({ type: 'SET_EXTENSION_MODAL', payload: false });
   };
 
   const handleReloadPage = (): void => {
     window.location.reload();
-    setShowExtensionModal(false);
+    dispatch({ type: 'SET_EXTENSION_MODAL', payload: false });
   };
 
   const handleCloseModal = (): void => {
-    setShowExtensionModal(false);
+    dispatch({ type: 'SET_EXTENSION_MODAL', payload: false });
   };
+
+  const nftData = useMemo(() => filterNonCompetitionNFTs(allNftData), [allNftData]);
+  const compNftData = useMemo(() => ({ 'dallas-ai': filterNFTsByCompetition(allNftData, 'dallas-ai') }), [allNftData]);
+
+  const setIsAuthenticated = (value: boolean) => dispatch({ type: 'SET_AUTH', payload: value });
+  const setConnectedWallet = (wallet: ConnectedWallet | null) => dispatch({ type: 'SET_CONNECTED_WALLET', payload: wallet });
+  const setShowExtensionModal = (show: boolean) => dispatch({ type: 'SET_EXTENSION_MODAL', payload: show });
+  const setUsageHistoryLoader = (val: boolean) => dispatch({ type: 'SET_USAGE_HISTORY_LOADER', payload: val });
 
   return (
     <AuthContext.Provider value={{
