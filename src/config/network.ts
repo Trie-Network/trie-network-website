@@ -205,7 +205,7 @@ const API_ENDPOINTS: ApiEndpoints = {
     ? "wss://mainnet.xellwallet.com:8443/ws" 
     : IS_TESTNET 
     ? "wss://dev-api.xellwallet.com:8443/ws"
-    : "wss://devnet-api.xellwallet.com:8443/ws",
+    : "wss://devnet-api.xellwallet.com:8460/ws",
   
   explorer: IS_MAINNET 
     ? "https://mainnet.rubixexplorer.com" 
