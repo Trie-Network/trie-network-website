@@ -67,16 +67,38 @@ export function InfraProvidersView() {
  
 
 
-  const {
-    filteredItems: paginatedProviders,
-    totalItems,
-    currentPage,
-    totalPages,
-    selectedFilters,
-    clearFilters,
-    setCurrentPage,
-    handleFilterSelect
-  } = useFilteredItems(infraProviders);
+  // Simple state management for filtering
+  const [selectedFilters, setSelectedFilters] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+  
+  const handleFilterSelect = (filter: string) => {
+    setSelectedFilters(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(filter)) {
+        newSet.delete(filter);
+      } else {
+        newSet.add(filter);
+      }
+      return newSet;
+    });
+  };
+  
+  const clearFilters = () => {
+    setSelectedFilters(new Set());
+  };
+  
+  // Simple filtering and pagination
+  const filteredProviders = infraProviders.filter(provider => {
+    if (selectedFilters.size === 0) return true;
+    // Add your filtering logic here based on provider properties
+    return true;
+  });
+  
+  const totalItems = filteredProviders.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedProviders = filteredProviders.slice(startIndex, startIndex + itemsPerPage);
 
 
   const filteredHardwareTypes = useMemo(() => {

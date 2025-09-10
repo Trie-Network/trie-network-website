@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "setup-env": "node scripts/setup-env.js create",
+    "validate-env": "node scripts/setup-env.js validate"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.17",

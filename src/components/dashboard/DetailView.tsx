@@ -541,7 +541,7 @@ const HistoryTab = ({ historyData, onTransactionClick, sliceString }: HistoryTab
 
 export function DetailView({ primaryColor = getNetworkColor() }: DetailViewProps = {}) {
   const { id: _ } = useParams();
-  const { connectedWallet, socketRef, setNftData, nftData, loader, infraProviders } = useAuth();
+  const { connectedWallet, socketRef, nftData, loader, infraProviders } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -613,17 +613,6 @@ export function DetailView({ primaryColor = getNetworkColor() }: DetailViewProps
     let history = await END_POINTS.get_usage_history({ nft: model?.nft }) as any;
     if (history?.status && history?.NFTDataReply?.length) {
       setHistoryData(history?.NFTDataReply);
-      setNftData((prev: any) => {
-        return prev.map((item: any) => {
-          if (item.nft == model?.nft) {
-            return {
-              ...item,
-              usageHistory: history?.NFTDataReply
-            };
-          }
-          return item;
-        });
-      });
     }
   }
 
