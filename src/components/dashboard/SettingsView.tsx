@@ -316,7 +316,7 @@ export function SettingsView({ primaryColor }: SettingsViewProps = {}) {
 
               {isWalletConnected(connectedWallet) && (
                 <WalletDetails 
-                  connectedWallet={connectedWallet} 
+                  connectedWallet={connectedWallet!} 
                   copied={copied} 
                   onCopy={handleCopy} 
                 />
