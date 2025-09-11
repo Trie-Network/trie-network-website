@@ -715,6 +715,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const setConnectedWallet = (wallet: ConnectedWallet | null) => dispatch({ type: 'SET_CONNECTED_WALLET', payload: wallet });
   const setShowExtensionModal = (show: boolean) => dispatch({ type: 'SET_EXTENSION_MODAL', payload: show });
   const setUsageHistoryLoader = (val: boolean) => dispatch({ type: 'SET_USAGE_HISTORY_LOADER', payload: val });
+  const setNftData = (data: NFTData[]) => dispatch({ type: 'SET_ALL_NFTS', payload: data });
 
   return (
     <AuthContext.Provider value={{
@@ -726,6 +727,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setConnectedWallet,
       compNftData,
       allNftData,
+      setNftData,
       setIsAuthenticated,
       socketRef,
       nftData,

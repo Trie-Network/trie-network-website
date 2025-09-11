@@ -5,30 +5,7 @@ import { ModelCard } from "../ModelCard"
 import { useCallback, useEffect, useState } from "react"
 import { Search } from "lucide-react";
 import { useTokenName } from '@/contexts/TokenNameContext';
-
-
-interface InfraProvider {
-  id: string;
-  providerName: string;
-  providerDid: string;
-  region: string;
-  storage: string;
-  hostingCost: number;
-  os: string;
-  processor: string;
-  gpu: string;
-  supportedModels?: string;
-  memory: string;
-  core: string;
-  endpoints?: any;
-}
-
-interface Platform {
-  name: string;
-  description: string;
-  likes?: number;
-  providers: InfraProvider[];
-}
+import { InfraProvider, GroupedInfraProvider } from '@/utils/providers';
 
 interface InfraModalProps {
   onselectProvider: (provider: {
@@ -39,8 +16,8 @@ interface InfraModalProps {
 }
 
 interface PlatformGridProps {
-  infraProviders: Platform[];
-  onPlatformSelect: (platform: Platform) => void;
+  infraProviders: GroupedInfraProvider[];
+  onPlatformSelect: (platform: GroupedInfraProvider) => void;
 }
 
 interface SearchBarProps {
@@ -55,7 +32,7 @@ interface ProviderListProps {
 }
 
 interface ProviderDetailsProps {
-  platform: Platform;
+  platform: GroupedInfraProvider;
   selectedProviderIndex: number;
   tokenName: string;
   onSelectProvider: (provider: {
@@ -121,7 +98,7 @@ const infraModalUtils = {
   },
 
   
-  createModelCardData: (platform: Platform) => ({
+  createModelCardData: (platform: GroupedInfraProvider) => ({
     type: "upload" as const,
     model: {
       metadata: {
@@ -129,14 +106,14 @@ const infraModalUtils = {
         name: platform.name,
         description: platform.description,
       },
-      likes: platform.likes || 0,
+      likes: 0,
     },
     isLiked: false,
     onLike: () => { }
   }),
 
   
-  createProviderSelectionData: (platform: Platform, selectedIndex: number) => ({
+  createProviderSelectionData: (platform: GroupedInfraProvider, selectedIndex: number) => ({
     providerDid: platform.providers[selectedIndex].providerDid,
     hostingCost: platform.providers[selectedIndex].hostingCost,
     endpoints: platform.providers[selectedIndex]?.endpoints,
@@ -178,7 +155,7 @@ const ProviderList: React.FC<ProviderListProps> = ({ providers, selectedIndex, o
     {providers.length > 0 ? (
       providers.map((provider: InfraProvider, index: number) => (
         <div
-          key={provider.id}
+          key={index}
           className={infraModalUtils.getProviderItemClasses(selectedIndex === index)}
           onClick={() => onProviderSelect(index)}
         >
@@ -199,7 +176,7 @@ const ProviderList: React.FC<ProviderListProps> = ({ providers, selectedIndex, o
 
 const PlatformGrid: React.FC<PlatformGridProps> = ({ infraProviders, onPlatformSelect }) => (
   <div className={LAYOUT_CLASSES.platformGrid}>
-    {infraProviders.map((provider: Platform, index: number) => (
+    {infraProviders.map((provider: GroupedInfraProvider, index: number) => (
       <div 
         onClick={() => onPlatformSelect(provider)} 
         key={index} 
@@ -278,7 +255,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = ({
 
 export function InfraModal({ onselectProvider }: InfraModalProps) {
   const { infraProviders } = useAuth();
-  const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
+  const [selectedPlatform, setSelectedPlatform] = useState<GroupedInfraProvider | null>(null);
   const [selectedProviderIndex, setSelectedProviderIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const tokenName = useTokenName();
@@ -298,7 +275,7 @@ export function InfraModal({ onselectProvider }: InfraModalProps) {
   }, [searchQuery, selectedPlatform, filteredProviders]);
 
 
-  const handlePlatformSelect = (platform: Platform) => {
+  const handlePlatformSelect = (platform: GroupedInfraProvider) => {
     setSelectedPlatform(platform);
     setSelectedProviderIndex(0);
     setSearchQuery('');
@@ -365,7 +342,6 @@ export function InfraModal({ onselectProvider }: InfraModalProps) {
 export type { 
   InfraModalProps, 
   InfraProvider, 
-  Platform, 
   ProviderListProps, 
   ProviderDetailsProps,
   SearchBarProps,
