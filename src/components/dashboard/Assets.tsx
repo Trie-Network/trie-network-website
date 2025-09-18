@@ -290,7 +290,7 @@ export function Assets({ primaryColor = getNetworkColor(), compId = null }: Asse
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [assets, setAssets] = useState<Asset[]>([]);
-  const { nftData } = useAuth();
+  const { nftData, refreshBalance } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -298,15 +298,38 @@ export function Assets({ primaryColor = getNetworkColor(), compId = null }: Asse
       const walletData = getWalletDetails();
       if (!walletData) return;
 
+      // Refresh NFT data to ensure we have the latest data
+      try {
+        await refreshBalance();
+      } catch (error) {
+        console.log('Balance refresh failed:', error);
+      }
+
       try {
         const result = await END_POINTS.get_nfts_by_did({ did: walletData?.did }) as any;
-        if (!result?.status) return;
+        if (!result?.status) {
+          console.log('Failed to fetch NFTs by DID:', result);
+          return;
+        }
+        
+        console.log('Fetched NFTs for user:', result?.nfts?.length, 'items');
+        console.log('Available nftData:', nftData?.length, 'items');
 
         let processedAssets;
         if (!compId) {
-          processedAssets = result?.nfts?.map((item: any) => 
-            nftData?.find((itm: any) => itm.nft === item?.nft)
-          );
+          processedAssets = result?.nfts?.map((item: any) => {
+            const matchedNft = nftData?.find((itm: any) => itm.nft === item?.nft);
+            if (matchedNft) {
+              return matchedNft;
+            } else {
+              // Fallback: create asset from raw NFT data if not found in nftData
+              return {
+                ...item,
+                metadata: JSON.parse(item?.nft_metadata || '{}')
+              };
+            }
+          }).filter(asset => asset && asset.metadata); // Remove undefined items
+          
           if (!processedAssets?.length) return;
         } else {
           processedAssets = result?.nfts?.map((item: any) => ({
@@ -315,6 +338,7 @@ export function Assets({ primaryColor = getNetworkColor(), compId = null }: Asse
           })).filter((item: any) => item?.metadata?.compId === compId);
         }
         
+        console.log('Processed assets:', processedAssets?.length, 'items');
         setAssets(processedAssets);
       } catch (error) {
         

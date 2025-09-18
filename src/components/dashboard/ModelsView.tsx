@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ModelCard, SearchInput, EmptyState, FilterButton, Pagination, MobileFilterDrawer, ModelCardSkeleton, Skeleton } from '@/components/ui';
-import { useAuth, useFilteredItems, useLikes } from '@/hooks';
+import { useAuth, useFilteredItems, useLikes, useDebounce } from '@/hooks';
 import { useEffect } from 'react';
 
 
@@ -51,6 +51,7 @@ interface FilterSidebarProps {
   onClearFilters: () => void;
   primaryColor: string;
   isLoading: boolean;
+  filterSections?: React.ReactNode[];
 }
 
 interface ModelsGridProps {
@@ -214,32 +215,6 @@ const EMPTY_STATE_CONFIG = {
 } as const;
 
 
-const filterCategoriesBySearch = (categories: TaskCategories, searchQuery: string): TaskCategories => {
-  if (!searchQuery) return categories;
-
-  const query = searchQuery.toLowerCase();
-  const filtered: TaskCategories = {
-    'Multimodal': [],
-    'Computer Vision': [],
-    'Natural Language Processing': [],
-    'Audio': [],
-    'Tabular': [],
-    'Reinforcement Learning': [],
-    'Other': []
-  };
-
-  Object.entries(categories).forEach(([category, tasks]) => {
-    const matchingTasks = tasks.filter(task =>
-      task.toLowerCase().includes(query)
-    );
-
-    if (matchingTasks.length > 0) {
-      filtered[category] = matchingTasks;
-    }
-  });
-
-  return filtered;
-};
 
 const getTaskIcon = (category: string, task: string, categoryIcons: CategoryIcons): string => {
   if (category === 'Multimodal' && categoryIcons.Multimodal.taskIcons) {
@@ -252,19 +227,11 @@ const getTaskColor = (category: string, categoryIcons: CategoryIcons): string =>
   return categoryIcons[category]?.color || '';
 };
 
-const filterModelData = (nftData: any[], compId?: string, compNftData?: any): any[] => {
-  if (!nftData?.length) return [];
-  
-  let filteredData = nftData;
-  if (compId && compNftData?.[compId]) {
-    filteredData = compNftData[compId];
-  }
-  
-  return filteredData?.filter((item: any) => item?.metadata?.type === "model") || [];
-};
 
 
-const FilterSection = ({ category, tasks, categoryIcons, selectedFilters, onFilterSelect }: FilterSectionProps) => (
+
+// Memoized FilterSection component for better performance
+const FilterSection = React.memo(({ category, tasks, categoryIcons, selectedFilters, onFilterSelect }: FilterSectionProps) => (
   <div className={LAYOUT_CLASSES.filterSection}>
     <div className={LAYOUT_CLASSES.filterHeader}>
       <h2 className={LAYOUT_CLASSES.filterTitle}>{category}</h2>
@@ -283,7 +250,7 @@ const FilterSection = ({ category, tasks, categoryIcons, selectedFilters, onFilt
       ))}
     </div>
   </div>
-);
+));
 
 const MobileFilterButton = ({ isOpen, onToggle, selectedFiltersCount, primaryColor, isLoading }: MobileFilterButtonProps) => {
   if (isLoading) {
@@ -324,7 +291,8 @@ const FilterSidebar = ({
   onFilterSelect, 
   onClearFilters, 
   primaryColor, 
-  isLoading 
+  isLoading,
+  filterSections
 }: FilterSidebarProps) => {
   if (isLoading) {
     return (
@@ -377,7 +345,7 @@ const FilterSidebar = ({
         />
       </div>
 
-      {Object.entries(filteredCategories).map(([category, tasks]) => (
+      {filterSections || Object.entries(filteredCategories).map(([category, tasks]) => (
         <FilterSection
           key={category}
           category={category}
@@ -391,7 +359,8 @@ const FilterSidebar = ({
   );
 };
 
-const ModelsGrid = ({ models, likedItems, likeCounts, onLike, isLoading }: ModelsGridProps) => {
+// Memoized ModelsGrid component for better performance
+const ModelsGrid = React.memo(({ models, likedItems, likeCounts, onLike, isLoading }: ModelsGridProps) => {
   if (isLoading) {
     return (
       <div className={LAYOUT_CLASSES.modelsGrid}>
@@ -418,7 +387,7 @@ const ModelsGrid = ({ models, likedItems, likeCounts, onLike, isLoading }: Model
       {models.map((model, index) => (
         <ModelCard
           type="model"
-          key={index}
+          key={model.id || index} // Use model.id for better key stability
           model={model}
           isLiked={likedItems[model.id]}
           likeCount={likeCounts[model.id]}
@@ -427,7 +396,7 @@ const ModelsGrid = ({ models, likedItems, likeCounts, onLike, isLoading }: Model
       ))}
     </div>
   );
-};
+});
 
 const PaginationSection = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageChange }: PaginationSectionProps) => {
   if (totalPages <= 1 || totalItems <= 0) return null;
@@ -452,12 +421,84 @@ export function ModelsView({ primaryColor = '#0284a5', compId }: ModelsViewProps
   const [searchParams] = useSearchParams();
   const categoryFromUrl = searchParams.get('category');
   const { nftData, loader, compNftData } = useAuth();
-  const [modelData, setModelData] = useState<any[]>([]);
 
-  useEffect(() => {
+  // Helper functions moved inside component
+  const transformModelData = useCallback((models: any[]): any[] => {
+    return models.map((model: any) => {
+      const categories: string[] = [];
+      
+      // Add main category if it exists
+      if (model?.metadata?.mainCategory) {
+        categories.push(model.metadata.mainCategory);
+      }
+      
+      // Add specific category if it exists
+      if (model?.metadata?.category) {
+        categories.push(model.metadata.category);
+      }
+      
+      // If no categories found, add a default category
+      if (categories.length === 0) {
+        categories.push('Other');
+      }
+      
+      return {
+        ...model,
+        categories
+      };
+    });
+  }, []);
+
+  const filterModelData = useCallback((nftData: any[], compId?: string, compNftData?: any): any[] => {
+    if (!nftData?.length) return [];
+    
+    let filteredData = nftData;
+    if (compId && compNftData?.[compId]) {
+      filteredData = compNftData[compId];
+    }
+    
+    const models = filteredData?.filter((item: any) => item?.metadata?.type === "model") || [];
+    
+    // Use transformation function
+    return transformModelData(models);
+  }, [transformModelData]);
+
+  const filterCategoriesBySearch = useCallback((categories: TaskCategories, searchQuery: string): TaskCategories => {
+    if (!searchQuery) return categories;
+
+    const query = searchQuery.toLowerCase();
+    const filtered: TaskCategories = {
+      'Multimodal': [],
+      'Computer Vision': [],
+      'Natural Language Processing': [],
+      'Audio': [],
+      'Tabular': [],
+      'Reinforcement Learning': [],
+      'Other': []
+    };
+
+    Object.entries(categories).forEach(([category, tasks]) => {
+      const matchingTasks = tasks.filter(task =>
+        task.toLowerCase().includes(query)
+      );
+
+      if (matchingTasks.length > 0) {
+        filtered[category] = matchingTasks;
+      }
+    });
+
+    return filtered;
+  }, []);
+  
+  // Debounced search query for better performance
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  
+  // Memoized model data processing
+  const modelData = useMemo(() => {
     const filteredData = filterModelData(nftData, compId, compNftData);
-    setModelData(filteredData);
-  }, [nftData, compId, compNftData]);
+    console.log('Models data with categories:', filteredData);
+    return filteredData;
+  }, [nftData, compId, compNftData, filterModelData]);
 
   const {
     filteredItems: paginatedModels,
@@ -470,25 +511,48 @@ export function ModelsView({ primaryColor = '#0284a5', compId }: ModelsViewProps
     handleFilterSelect
   } = useFilteredItems(modelData, ITEMS_PER_PAGE, categoryFromUrl || undefined);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('Selected filters:', Array.from(selectedFilters));
+    console.log('Total items:', totalItems);
+    console.log('Filtered items:', paginatedModels.length);
+  }, [selectedFilters, totalItems, paginatedModels.length]);
+
+  // Memoized filtered categories with debounced search
   const filteredCategories = useMemo(() => {
-    return filterCategoriesBySearch(TASK_CATEGORIES, searchQuery);
-  }, [searchQuery]);
+    return filterCategoriesBySearch(TASK_CATEGORIES, debouncedSearchQuery);
+  }, [debouncedSearchQuery, filterCategoriesBySearch]);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Memoized filter sections to prevent unnecessary re-renders
+  const filterSections = useMemo(() => {
+    return Object.entries(filteredCategories).map(([category, tasks]) => (
+      <FilterSection
+        key={category}
+        category={category}
+        tasks={tasks}
+        categoryIcons={CATEGORY_ICONS}
+        selectedFilters={selectedFilters}
+        onFilterSelect={handleFilterSelect}
+      />
+    ));
+  }, [filteredCategories, selectedFilters, handleFilterSelect]);
+
+  // Memoized event handlers
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-  };
+  }, []);
 
-  const handleSearchClear = () => {
+  const handleSearchClear = useCallback(() => {
     setSearchQuery('');
-  };
+  }, []);
 
-  const handleMobileFiltersToggle = () => {
-    setMobileFiltersOpen(!mobileFiltersOpen);
-  };
+  const handleMobileFiltersToggle = useCallback(() => {
+    setMobileFiltersOpen(prev => !prev);
+  }, []);
 
-  const handleMobileFiltersClose = () => {
+  const handleMobileFiltersClose = useCallback(() => {
     setMobileFiltersOpen(false);
-  };
+  }, []);
 
   return (
     <div className={LAYOUT_CLASSES.container}>
@@ -503,16 +567,7 @@ export function ModelsView({ primaryColor = '#0284a5', compId }: ModelsViewProps
             />
           </div>
 
-          {Object.entries(filteredCategories).map(([category, tasks]) => (
-            <FilterSection
-              key={category}
-              category={category}
-              tasks={tasks}
-              categoryIcons={CATEGORY_ICONS}
-              selectedFilters={selectedFilters}
-              onFilterSelect={handleFilterSelect}
-            />
-          ))}
+          {filterSections}
         </div>
       </MobileFilterDrawer>
 
@@ -544,10 +599,7 @@ export function ModelsView({ primaryColor = '#0284a5', compId }: ModelsViewProps
         />
       </div>
 
-      <div 
-        className={LAYOUT_CLASSES.sidebar}
-        style={{ display: 'none' }}
-      >
+      <div className={LAYOUT_CLASSES.sidebar}>
         <FilterSidebar
           searchQuery={searchQuery}
           onSearchChange={handleSearchChange}
@@ -559,6 +611,7 @@ export function ModelsView({ primaryColor = '#0284a5', compId }: ModelsViewProps
           onClearFilters={clearFilters}
           primaryColor={primaryColor}
           isLoading={loader}
+          filterSections={filterSections}
         />
       </div>
     </div>

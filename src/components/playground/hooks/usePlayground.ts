@@ -420,17 +420,32 @@ export const usePlayground = () => {
             return;
         }
 
+        // Check if infra providers are available
+        if (!infraProviders || infraProviders.length === 0) {
+            toast.error("Infrastructure providers not available. Please try again later.");
+            return;
+        }
+
         setBuyingTokensLoading(true);
 
         const trieAmount = 5;
         const tokenAmount = 500;
         const currentTimestamp = Math.floor(Date.now() / 1000);
+        
+        // Get provider DID with fallback
+        const providerDid = infraProviders[0]?.providers?.[0]?.providerDid;
+        if (!providerDid) {
+            toast.error("Provider information not available. Please try again later.");
+            setBuyingTokensLoading(false);
+            return;
+        }
+
         let data = {
             purchase_credit: {
                 "purchase_token_name": "TRIE",
                 "purchase_token_creator": CONSTANTS.FT_DENOM_CREATOR,
-                "user_did": connectedWallet?.did,
-                "depin_provider": infraProviders?.[0]?.providers?.[0]?.providerDid,
+                "user_did": connectedWallet.did,
+                "depin_provider": providerDid,
                 "current_timestamp": currentTimestamp
             }
         };
@@ -443,7 +458,8 @@ export const usePlayground = () => {
             "smartContractToken": CONSTANTS.TOPUP_TOKEN
         };
 
-        if (window.xell) {
+        // Check if extension is available
+        if (typeof window !== 'undefined' && window.xell) {
             try {
                 const result = await window.xell.executeContract(executeData);
                 
@@ -455,30 +471,40 @@ export const usePlayground = () => {
                     const initialBalance = state.inferenceBalance;
                     
                     const pollInterval = setInterval(async () => {
-                        pollCount++;
-                        
-                        const newBalance = await fetchBalance(connectedWallet.did);
-                        
-                        if (newBalance !== initialBalance || pollCount >= maxPolls) {
-                            if (newBalance !== initialBalance) {
-                                setState(prev => ({ ...prev, inferenceBalance: newBalance }));
-                                toast.success(`Balance updated! New balance: ${newBalance} tokens`);
-                            }
+                        try {
+                            pollCount++;
                             
+                            const newBalance = await fetchBalance(connectedWallet.did);
+                            
+                            if (newBalance !== initialBalance || pollCount >= maxPolls) {
+                                if (newBalance !== initialBalance) {
+                                    setState(prev => ({ ...prev, inferenceBalance: newBalance }));
+                                    toast.success(`Balance updated! New balance: ${newBalance} tokens`);
+                                } else if (pollCount >= maxPolls) {
+                                    toast.error("Purchase timeout. Please check your wallet or try again.");
+                                }
+                                
+                                setBuyingTokensLoading(false);
+                                clearInterval(pollInterval);
+                            }
+                        } catch (pollError) {
+                            console.error('Balance polling error:', pollError);
                             setBuyingTokensLoading(false);
                             clearInterval(pollInterval);
                         }
                     }, 3000);
                 } else {
-                    toast.error(result?.data?.message || 'Purchase failed');
+                    const errorMessage = result?.data?.message || 'Purchase failed';
+                    toast.error(errorMessage);
                     setBuyingTokensLoading(false);
                 }
             } catch (error) {
-                toast.error("Please refresh the page to use the extension features");
+                console.error('Buy tokens error:', error);
+                toast.error("Purchase failed. Please check your wallet connection and try again.");
                 setBuyingTokensLoading(false);
             }
         } else {
-            toast.error("Extension not detected. Please install the extension and refresh the page.");
+            toast.error("Wallet extension not detected. Please install the XELL extension and refresh the page.");
             setBuyingTokensLoading(false);
         }
     };

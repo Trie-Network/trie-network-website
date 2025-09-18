@@ -7,7 +7,7 @@ import {
   Skeleton
 } from '@/components/ui';
 import { useAuth } from '@/hooks';
-import { getRelativeTimeString } from '@/utils';
+import { getRelativeTimeString, sortByActivityCount, getActivitySummary } from '@/utils';
 import { END_POINTS } from '@/api/requests';
 import { getNetworkColor } from '../../config/colors';
 
@@ -141,13 +141,8 @@ const getNavigationState = (item: any) => {
   return { state: { model: { ...item, type: item?.metadata?.type } } };
 };
 
-const sortByUsageHistory = (a: any, b: any): number => {
-  if (!a?.usageHistory?.length || !b?.usageHistory?.length) return 0;
-  const aEpoch = a.usageHistory[a.usageHistory.length - 1]?.Epoch;
-  const bEpoch = b.usageHistory[b.usageHistory.length - 1]?.Epoch;
-  if (aEpoch === undefined || bEpoch === undefined) return 0;
-  return bEpoch - aEpoch;
-};
+// Use the new trending utility for sorting by activity count
+const sortByUsageHistory = sortByActivityCount;
 
 const filterByType = (data: any[], type: string): any[] => {
   return data?.filter((item: any) =>
@@ -159,9 +154,13 @@ const filterByType = (data: any[], type: string): any[] => {
 };
 
 const getLastUpdateTime = (item: any): string => {
-  if (!item?.usageHistory?.length) return '-';
+  if (!item?.usageHistory?.length) return 'No activity';
+  
   const lastEpoch = item.usageHistory[item.usageHistory.length - 1]?.Epoch;
-  return lastEpoch ? `Updated ${getRelativeTimeString(Number(lastEpoch))}` : '-';
+  const lastUpdate = lastEpoch ? getRelativeTimeString(Number(lastEpoch)) : 'Unknown';
+  const activitySummary = getActivitySummary(item.usageHistory);
+  
+  return `${activitySummary} • Last used ${lastUpdate}`;
 };
 
 const getInitials = (name: string): string => {

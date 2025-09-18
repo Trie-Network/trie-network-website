@@ -591,11 +591,6 @@ const PricingStep = ({ formData, onPriceChange, tokenName, primaryColor }: Prici
             placeholder="Enter amount"
           />
           <p className={LAYOUT_CLASSES.tokenDisplay}>{tokenName.toUpperCase()}</p>
-          <p className={LAYOUT_CLASSES.equalsSign}>=</p>
-          <p className={LAYOUT_CLASSES.convertedAmount}>
-            {formData?.pricing?.price ? (parseFloat(formData?.pricing?.price) / 1000) : 0}
-          </p>
-          <p className={LAYOUT_CLASSES.tokenDisplay}>{tokenName.toUpperCase()}</p>
         </div>
       </div>
     </div>
