@@ -76,38 +76,18 @@ export const fetchInferenceBalance = async (
   } = options;
 
   if (!balanceUtils.validateDid(did)) {
-    if (enableDebugging) {
-      console.warn(`Invalid DID provided: ${did}`);
-    }
     return null;
   }
   
   try {
-    if (enableDebugging) {
-      console.log(`Fetching balance for DID: ${did}`);
-    }
-
     const res = await END_POINTS.get_credit_balance_by_did(did);
-    
-    if (enableDebugging) {
-      console.log('Raw response:', res);
-    }
-
     const creditValue = balanceUtils.extractCreditValue(res);
-    
-    if (enableDebugging) {
-      console.log(`Extracted credit value: ${creditValue}`);
-    }
-
     return creditValue;
   } catch (error) {
     if (onError && error instanceof Error) {
       onError(error);
     }
     
-    if (enableDebugging) {
-      console.error('Error fetching balance:', error);
-    }
     
     return fallbackValue;
   }

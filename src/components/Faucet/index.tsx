@@ -214,7 +214,6 @@ function Faucet({ className }: FaucetProps = {}) {
 
   const tokenName = useTokenName();
 
-  // Set document title
   useEffect(() => {
     document.title = 'Faucet | TRIE: AI Marketplace';
   }, []);

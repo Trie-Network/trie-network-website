@@ -230,7 +230,6 @@ const getTaskColor = (category: string, categoryIcons: CategoryIcons): string =>
 
 
 
-// Memoized FilterSection component for better performance
 const FilterSection = React.memo(({ category, tasks, categoryIcons, selectedFilters, onFilterSelect }: FilterSectionProps) => (
   <div className={LAYOUT_CLASSES.filterSection}>
     <div className={LAYOUT_CLASSES.filterHeader}>
@@ -359,7 +358,6 @@ const FilterSidebar = ({
   );
 };
 
-// Memoized ModelsGrid component for better performance
 const ModelsGrid = React.memo(({ models, likedItems, likeCounts, onLike, isLoading }: ModelsGridProps) => {
   if (isLoading) {
     return (
@@ -422,22 +420,18 @@ export function ModelsView({ primaryColor = '#0284a5', compId }: ModelsViewProps
   const categoryFromUrl = searchParams.get('category');
   const { nftData, loader, compNftData } = useAuth();
 
-  // Helper functions moved inside component
   const transformModelData = useCallback((models: any[]): any[] => {
     return models.map((model: any) => {
       const categories: string[] = [];
       
-      // Add main category if it exists
       if (model?.metadata?.mainCategory) {
         categories.push(model.metadata.mainCategory);
       }
       
-      // Add specific category if it exists
       if (model?.metadata?.category) {
         categories.push(model.metadata.category);
       }
       
-      // If no categories found, add a default category
       if (categories.length === 0) {
         categories.push('Other');
       }
@@ -459,7 +453,6 @@ export function ModelsView({ primaryColor = '#0284a5', compId }: ModelsViewProps
     
     const models = filteredData?.filter((item: any) => item?.metadata?.type === "model") || [];
     
-    // Use transformation function
     return transformModelData(models);
   }, [transformModelData]);
 
@@ -490,13 +483,10 @@ export function ModelsView({ primaryColor = '#0284a5', compId }: ModelsViewProps
     return filtered;
   }, []);
   
-  // Debounced search query for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   
-  // Memoized model data processing
   const modelData = useMemo(() => {
     const filteredData = filterModelData(nftData, compId, compNftData);
-    console.log('Models data with categories:', filteredData);
     return filteredData;
   }, [nftData, compId, compNftData, filterModelData]);
 
@@ -511,19 +501,11 @@ export function ModelsView({ primaryColor = '#0284a5', compId }: ModelsViewProps
     handleFilterSelect
   } = useFilteredItems(modelData, ITEMS_PER_PAGE, categoryFromUrl || undefined);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('Selected filters:', Array.from(selectedFilters));
-    console.log('Total items:', totalItems);
-    console.log('Filtered items:', paginatedModels.length);
-  }, [selectedFilters, totalItems, paginatedModels.length]);
 
-  // Memoized filtered categories with debounced search
   const filteredCategories = useMemo(() => {
     return filterCategoriesBySearch(TASK_CATEGORIES, debouncedSearchQuery);
   }, [debouncedSearchQuery, filterCategoriesBySearch]);
 
-  // Memoized filter sections to prevent unnecessary re-renders
   const filterSections = useMemo(() => {
     return Object.entries(filteredCategories).map(([category, tasks]) => (
       <FilterSection
@@ -537,7 +519,6 @@ export function ModelsView({ primaryColor = '#0284a5', compId }: ModelsViewProps
     ));
   }, [filteredCategories, selectedFilters, handleFilterSelect]);
 
-  // Memoized event handlers
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   }, []);

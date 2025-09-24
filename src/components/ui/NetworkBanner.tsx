@@ -148,7 +148,6 @@ export function NetworkBanner({
 }: NetworkBannerProps) {
   
   if (!networkBannerUtils.validateProps({ className, customMainnetUrl, customBannerText, customLinkText })) {
-    // NetworkBanner: Invalid props provided
     return null;
   }
 

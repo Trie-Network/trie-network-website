@@ -46,20 +46,16 @@ export function calculateTrendingScore(
   const now = Date.now() / 1000; // Current epoch in seconds
   const recentThreshold = now - (recentDays * 24 * 60 * 60); // 7 days ago
 
-  // Count recent activity (last 7 days)
   const recentActivity = usageHistory.filter(
     (record: any) => record.Epoch && record.Epoch >= recentThreshold
   ).length;
 
-  // Total activity count
   const totalActivity = usageHistory.length;
 
-  // Get most recent usage timestamp
   const lastUsed = Math.max(
     ...usageHistory.map((record: any) => record.Epoch || 0)
   );
 
-  // Calculate weighted score (recent activity weighted more heavily)
   const weightedScore = (recentActivity * weightRecent) + (totalActivity * weightTotal);
 
   return {
@@ -85,17 +81,14 @@ export function sortByTrendingScore(
   const scoreA = calculateTrendingScore(a?.usageHistory || [], options);
   const scoreB = calculateTrendingScore(b?.usageHistory || [], options);
 
-  // Primary sort: weighted score (most trending first)
   if (scoreA.weightedScore !== scoreB.weightedScore) {
     return scoreB.weightedScore - scoreA.weightedScore;
   }
 
-  // Secondary sort: total activity
   if (scoreA.totalActivity !== scoreB.totalActivity) {
     return scoreB.totalActivity - scoreA.totalActivity;
   }
 
-  // Tertiary sort: most recent usage
   return scoreB.lastUsed - scoreA.lastUsed;
 }
 
@@ -113,7 +106,6 @@ export function sortByActivityCount(a: any, b: any): number {
     return activityB - activityA;
   }
 
-  // Tiebreaker: most recent usage
   const lastUsedA = Math.max(...(a?.usageHistory?.map((r: any) => r.Epoch || 0) || [0]));
   const lastUsedB = Math.max(...(b?.usageHistory?.map((r: any) => r.Epoch || 0) || [0]));
   

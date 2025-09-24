@@ -38,16 +38,13 @@ export function calculateSearchScore(
   let descMatch = false;
   let matchType: 'name' | 'description' | 'both' = 'name';
 
-  // Check name match
   if (type === 'infra') {
     const name = item?.name?.toLowerCase() || '';
     if (name.includes(normalizedQuery)) {
       nameMatch = true;
       score += 100; // High score for name match
       
-      // Bonus for exact match
       if (name === normalizedQuery) score += 50;
-      // Bonus for starts with
       else if (name.startsWith(normalizedQuery)) score += 25;
     }
   } else {
@@ -56,14 +53,11 @@ export function calculateSearchScore(
       nameMatch = true;
       score += 100; // High score for name match
       
-      // Bonus for exact match
       if (name === normalizedQuery) score += 50;
-      // Bonus for starts with
       else if (name.startsWith(normalizedQuery)) score += 25;
     }
   }
 
-  // Check description match
   const description = type === 'infra' 
     ? item?.description?.toLowerCase() || ''
     : item?.metadata?.description?.toLowerCase() || '';
@@ -72,11 +66,9 @@ export function calculateSearchScore(
     descMatch = true;
     score += 50; // Lower score for description match
     
-    // Bonus for exact phrase match
     if (description.includes(` ${normalizedQuery} `)) score += 20;
   }
 
-  // Determine match type
   if (nameMatch && descMatch) {
     matchType = 'both';
     score += 25; // Bonus for both matches
@@ -103,17 +95,14 @@ export function highlightMatch(text: string, query: string, maxLength: number = 
   
   if (queryIndex === -1) return text;
   
-  // Find context around the match
   const start = Math.max(0, queryIndex - 20);
   const end = Math.min(text.length, queryIndex + normalizedQuery.length + 20);
   
   let highlighted = text.substring(start, end);
   
-  // Add ellipsis if truncated
   if (start > 0) highlighted = '...' + highlighted;
   if (end < text.length) highlighted = highlighted + '...';
   
-  // Highlight the match (using simple text replacement for now)
   const regex = new RegExp(`(${query})`, 'gi');
   highlighted = highlighted.replace(regex, `**$1**`);
   
@@ -145,7 +134,6 @@ export function enhancedSearch(
   const results: SearchResult[] = [];
 
   for (const item of data) {
-    // Skip items that don't match basic criteria
     if (type === 'infra') {
       if (!item?.name) continue;
     } else {
@@ -176,10 +164,8 @@ export function enhancedSearch(
     }
   }
 
-  // Sort by score (highest first)
   results.sort((a, b) => b.score - a.score);
   
-  // Limit results
   return results.slice(0, maxResults);
 }
 

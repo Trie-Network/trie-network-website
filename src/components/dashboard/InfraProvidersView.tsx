@@ -67,7 +67,6 @@ export function InfraProvidersView() {
  
 
 
-  // Simple state management for filtering
   const [selectedFilters, setSelectedFilters] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
@@ -88,10 +87,8 @@ export function InfraProvidersView() {
     setSelectedFilters(new Set());
   };
   
-  // Simple filtering and pagination
   const filteredProviders = infraProviders.filter(provider => {
     if (selectedFilters.size === 0) return true;
-    // Add your filtering logic here based on provider properties
     return true;
   });
   

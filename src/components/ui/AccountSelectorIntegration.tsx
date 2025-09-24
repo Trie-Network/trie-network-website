@@ -24,7 +24,6 @@ const AccountSelectorIntegration: React.FC<AccountSelectorIntegrationProps> = ({
     
     setIsLoading(true);
     try {
-      // Call your transfer function here
       await onTransfer?.(fromAccount, toAccount);
     } catch (error) {
       console.error('Transfer failed:', error);
