@@ -113,7 +113,7 @@ const NETWORK_INFO: NetworkInfo = {
 // ============================================================================
 
 // Primary method - simple and clean
-export const CURRENT_NETWORK: string = import.meta.env.VITE_NETWORK || NETWORK_CONFIG.TESTNET;
+export const CURRENT_NETWORK: string = import.meta.env.VITE_NETWORK || NETWORK_CONFIG.DEVNET;
 
 // Boolean flags derived from CURRENT_NETWORK
 export const isMainnet = CURRENT_NETWORK === NETWORK_CONFIG.MAINNET;

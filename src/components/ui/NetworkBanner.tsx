@@ -3,7 +3,7 @@
 /// <reference types="vite/client" />
 
 import { AlertTriangle } from 'lucide-react';
-import { CURRENT_NETWORK, Network } from '@/config/network';
+import { CURRENT_NETWORK, Network, isTestnet, isDevnet } from '@/config/network';
 
 interface NetworkBannerProps {
   className?: string;
@@ -32,7 +32,7 @@ const NETWORK_BANNER_CLASSES = {
 } as const;
 
 const NETWORK_BANNER_DEFAULT_CONFIG = {
-  defaultMainnetUrl: 'https://www.trie.network',
+  defaultMainnetUrl: 'https://mainnet.trie.network',
   defaultBannerText: 'You are on the Testnet. Switch to',
   defaultLinkText: 'Mainnet',
   defaultClassName: '',
@@ -41,14 +41,20 @@ const NETWORK_BANNER_DEFAULT_CONFIG = {
 
 const NETWORK_BANNER_CONFIG = {
   mainnetNetwork: Network.MAINNET,
-  testnetNetworks: [Network.TESTNET]
+  nonMainnetNetworks: [Network.TESTNET, Network.DEVNET]
 } as const;
 
 
 const networkBannerUtils = {
   
-  isTestnet: (): boolean => {
-    return CURRENT_NETWORK !== NETWORK_BANNER_CONFIG.mainnetNetwork;
+  shouldShowBanner: (): boolean => {
+    return isTestnet || isDevnet;
+  },
+
+  getCurrentNetworkName: (): string => {
+    if (isTestnet) return 'Testnet';
+    if (isDevnet) return 'Devnet';
+    return 'Unknown';
   },
 
   
@@ -58,7 +64,9 @@ const networkBannerUtils = {
 
   
   getBannerText: (customText?: string): string => {
-    return customText || NETWORK_BANNER_DEFAULT_CONFIG.defaultBannerText;
+    if (customText) return customText;
+    const networkName = networkBannerUtils.getCurrentNetworkName();
+    return `You are on the ${networkName}. Switch to`;
   },
 
   
@@ -145,7 +153,7 @@ export function NetworkBanner({
   }
 
   
-  if (!networkBannerUtils.isTestnet()) {
+  if (!networkBannerUtils.shouldShowBanner()) {
     return null;
   }
 
