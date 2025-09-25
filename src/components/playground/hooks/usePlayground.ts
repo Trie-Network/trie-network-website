@@ -27,7 +27,6 @@ export const usePlayground = () => {
     const tokenName = useTokenName();
     const { setBuyingTokensLoading, isBuyingTokens } = useGlobalLoaders();
 
-    // Initialize models from NFT data
     useEffect(() => {
         const ml = allNftData?.map(nft => createModelFromNFT(nft)) || [];
         
@@ -77,7 +76,6 @@ export const usePlayground = () => {
         }
     }, [searchParams, allNftData]);
 
-    // Fetch inference balance
     const fetchInferenceBalance = useCallback(async () => {
         if (!connectedWallet?.did) {
             setState(prev => ({ ...prev, inferenceBalance: null }));
@@ -98,7 +96,6 @@ export const usePlayground = () => {
         fetchInferenceBalance();
     }, [connectedWallet?.did, fetchInferenceBalance]);
 
-    // Listen for balance updates
     useEffect(() => {
         const handleUpdateBalance = (event: UpdateInferenceBalanceEvent) => {
             setState(prev => ({ ...prev, inferenceBalance: event.detail }));
@@ -110,7 +107,6 @@ export const usePlayground = () => {
         };
     }, []);
 
-    // Handle project change
     const handleTemplateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const selected = e.target.value;
         if (selected === "Default") {
@@ -132,7 +128,6 @@ export const usePlayground = () => {
             const selectedProjectData = projectsData.find((p: Project) => p.name === selected);
 
             if (selectedProjectData) {
-                // Safeguard: Ensure systemPrompt is not too long
                 const systemPrompt = selectedProjectData.systemPrompt || "";
                 if (typeof systemPrompt === 'string' && systemPrompt.length <= 2000) {
                     setState(prev => ({
@@ -153,15 +148,12 @@ export const usePlayground = () => {
         }
     };
 
-    // Handle system prompt change
     const handleSystemPromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const input = e.target.value;
-        // Ensure input never exceeds the maximum length
         const truncatedInput = input.length > 2000 ? input.substring(0, 2000) : input;
         setState(prev => ({ ...prev, systemPrompt: truncatedInput }));
     };
 
-    // Handle edit prompt
     const handleEditPrompt = () => {
         setState(prev => ({ 
             ...prev, 
@@ -170,7 +162,6 @@ export const usePlayground = () => {
         }));
     };
 
-    // Handle cancel edit
     const handleCancelEdit = () => {
         setState(prev => ({ 
             ...prev, 
@@ -179,12 +170,10 @@ export const usePlayground = () => {
         }));
     };
 
-    // Handle clear system prompt
     const handleClearSystemPrompt = () => {
         setState(prev => ({ ...prev, showClearModal: true }));
     };
 
-    // Confirm clear system prompt
     const confirmClearSystemPrompt = () => {
         setState(prev => ({
             ...prev,
@@ -194,7 +183,6 @@ export const usePlayground = () => {
         }));
     };
 
-    // Handle user message change
     const handleUserMessageChange = (message: string) => {
         setState(prev => ({ 
             ...prev, 
@@ -203,12 +191,10 @@ export const usePlayground = () => {
         }));
     };
 
-    // Handle clear input
     const handleClearInput = () => {
         setState(prev => ({ ...prev, userMessage: "" }));
     };
 
-    // Handle drawer toggle
     const toggleDrawer = (drawer: 'system' | 'settings') => {
         setState(prev => ({ 
             ...prev, 
@@ -216,12 +202,10 @@ export const usePlayground = () => {
         }));
     };
 
-    // Close drawer
     const closeDrawer = () => {
         setState(prev => ({ ...prev, activeDrawer: 'none' }));
     };
 
-    // Handle copy message
     const handleCopyMessage = async (text: string, messageIndex: number) => {
         try {
             await navigator.clipboard.writeText(text);
@@ -234,7 +218,6 @@ export const usePlayground = () => {
         }
     };
 
-    // Handle rerun message
     const handleRerunMessage = async (userMessageIndex: number) => {
         if (state.isProcessing) return;
 
@@ -243,12 +226,10 @@ export const usePlayground = () => {
             const newMessages = state.messages.slice(0, userMessageIndex + 1);
             setState(prev => ({ ...prev, messages: newMessages, isProcessing: true }));
 
-            // Process RAG and send message
             await processMessage(userMessage.content, newMessages);
         }
     };
 
-    // Process message with RAG
     const processMessage = async (messageContent: string, currentMessages: Message[]) => {
         let payloadMessage = currentMessages.map((message) => ({
             role: String(message.role).toLowerCase(),
@@ -322,7 +303,6 @@ export const usePlayground = () => {
             );
 
             if (result.length > 0) {
-                // Transform API response to our Message type
                 const transformedMessages: Message[] = result
                     .filter(msg => isValidRole(msg.role))
                     .map(msg => ({
@@ -354,7 +334,6 @@ export const usePlayground = () => {
         }
     };
 
-    // Handle run message
     const handleRunMessage = async () => {
         if (!connectedWallet?.did) {
             toast.error("Please connect your wallet.");
@@ -413,10 +392,14 @@ export const usePlayground = () => {
         }
     };
 
-    // Handle buy more tokens
     const handleBuyMoreTokens = async () => {
         if (!connectedWallet?.did) {
             toast.error("Please connect your wallet.");
+            return;
+        }
+
+        if (!infraProviders || infraProviders.length === 0) {
+            toast.error("Infrastructure providers not available. Please try again later.");
             return;
         }
 
@@ -425,12 +408,20 @@ export const usePlayground = () => {
         const trieAmount = 5;
         const tokenAmount = 500;
         const currentTimestamp = Math.floor(Date.now() / 1000);
+        
+        const providerDid = infraProviders[0]?.providers?.[0]?.providerDid;
+        if (!providerDid) {
+            toast.error("Provider information not available. Please try again later.");
+            setBuyingTokensLoading(false);
+            return;
+        }
+
         let data = {
             purchase_credit: {
                 "purchase_token_name": "TRIE",
                 "purchase_token_creator": CONSTANTS.FT_DENOM_CREATOR,
-                "user_did": connectedWallet?.did,
-                "depin_provider": infraProviders?.[0]?.providers?.[0]?.providerDid,
+                "user_did": connectedWallet.did,
+                "depin_provider": providerDid,
                 "current_timestamp": currentTimestamp
             }
         };
@@ -443,7 +434,7 @@ export const usePlayground = () => {
             "smartContractToken": CONSTANTS.TOPUP_TOKEN
         };
 
-        if (window.xell) {
+        if (typeof window !== 'undefined' && window.xell) {
             try {
                 const result = await window.xell.executeContract(executeData);
                 
@@ -455,40 +446,48 @@ export const usePlayground = () => {
                     const initialBalance = state.inferenceBalance;
                     
                     const pollInterval = setInterval(async () => {
-                        pollCount++;
-                        
-                        const newBalance = await fetchBalance(connectedWallet.did);
-                        
-                        if (newBalance !== initialBalance || pollCount >= maxPolls) {
-                            if (newBalance !== initialBalance) {
-                                setState(prev => ({ ...prev, inferenceBalance: newBalance }));
-                                toast.success(`Balance updated! New balance: ${newBalance} tokens`);
-                            }
+                        try {
+                            pollCount++;
                             
+                            const newBalance = await fetchBalance(connectedWallet.did);
+                            
+                            if (newBalance !== initialBalance || pollCount >= maxPolls) {
+                                if (newBalance !== initialBalance) {
+                                    setState(prev => ({ ...prev, inferenceBalance: newBalance }));
+                                    toast.success(`Balance updated! New balance: ${newBalance} tokens`);
+                                } else if (pollCount >= maxPolls) {
+                                    toast.error("Purchase timeout. Please check your wallet or try again.");
+                                }
+                                
+                                setBuyingTokensLoading(false);
+                                clearInterval(pollInterval);
+                            }
+                        } catch (pollError) {
+                            console.error('Balance polling error:', pollError);
                             setBuyingTokensLoading(false);
                             clearInterval(pollInterval);
                         }
                     }, 3000);
                 } else {
-                    toast.error(result?.data?.message || 'Purchase failed');
+                    const errorMessage = result?.data?.message || 'Purchase failed';
+                    toast.error(errorMessage);
                     setBuyingTokensLoading(false);
                 }
             } catch (error) {
-                toast.error("Please refresh the page to use the extension features");
+                console.error('Buy tokens error:', error);
+                toast.error("Purchase failed. Please check your wallet connection and try again.");
                 setBuyingTokensLoading(false);
             }
         } else {
-            toast.error("Extension not detected. Please install the extension and refresh the page.");
+            toast.error("Wallet extension not detected. Please install the XELL extension and refresh the page.");
             setBuyingTokensLoading(false);
         }
     };
 
-    // Handle RAG text change
     const handleRagTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setState(prev => ({ ...prev, ragText: e.target.value }));
     };
 
-    // Handle RAG file change
     const handleRagFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             setState(prev => ({ 
@@ -498,14 +497,12 @@ export const usePlayground = () => {
                 uploading: true
             }));
             
-            // Simulate upload completion
             setTimeout(() => {
                 setState(prev => ({ ...prev, uploading: false }));
             }, 1000);
         }
     };
 
-    // Handle chunk size change
     const handleChunkSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setState(prev => ({ 
             ...prev, 
@@ -513,7 +510,6 @@ export const usePlayground = () => {
         }));
     };
 
-    // Handle k-nearest change
     const handleKNearestChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setState(prev => ({ 
             ...prev, 
@@ -521,29 +517,24 @@ export const usePlayground = () => {
         }));
     };
 
-    // Handle model change
     const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setState(prev => ({ ...prev, selectedModel: e.target.value }));
     };
 
-    // Remove RAG file
     const handleRemoveRagFile = () => {
         setState(prev => ({ ...prev, ragFile: null }));
     };
 
-    // Handle save prompt
     const handleSavePrompt = () => {
         toast.success('System prompt saved successfully!', {
             position: 'top-center',
         });
     };
 
-    // Handle close clear modal
     const handleCloseClearModal = () => {
         setState(prev => ({ ...prev, showClearModal: false }));
     };
 
-    // Handle window resize
     useEffect(() => {
         const handleResize = () => {
             if (window.innerWidth >= 1024) {
@@ -555,7 +546,6 @@ export const usePlayground = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Handle body overflow
     useEffect(() => {
         document.body.style.overflow = 'hidden';
         return () => {

@@ -12,6 +12,7 @@ export * from './MobileFilterDrawer';
 export * from './LoadingOverlay';
 export * from './NetworkBanner';
 export * from './providerDetails';
+export { default as AccountSelector } from './AccountSelector';
 
 
 export * from './Skeleton';

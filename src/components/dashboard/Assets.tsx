@@ -290,7 +290,7 @@ export function Assets({ primaryColor = getNetworkColor(), compId = null }: Asse
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [assets, setAssets] = useState<Asset[]>([]);
-  const { nftData } = useAuth();
+  const { nftData, refreshBalance } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -299,14 +299,30 @@ export function Assets({ primaryColor = getNetworkColor(), compId = null }: Asse
       if (!walletData) return;
 
       try {
+        await refreshBalance();
+      } catch (error) {
+      }
+
+      try {
         const result = await END_POINTS.get_nfts_by_did({ did: walletData?.did }) as any;
-        if (!result?.status) return;
+        if (!result?.status) {
+          return;
+        }
 
         let processedAssets;
         if (!compId) {
-          processedAssets = result?.nfts?.map((item: any) => 
-            nftData?.find((itm: any) => itm.nft === item?.nft)
-          );
+          processedAssets = result?.nfts?.map((item: any) => {
+            const matchedNft = nftData?.find((itm: any) => itm.nft === item?.nft);
+            if (matchedNft) {
+              return matchedNft;
+            } else {
+              return {
+                ...item,
+                metadata: JSON.parse(item?.nft_metadata || '{}')
+              };
+            }
+          }).filter(asset => asset && asset.metadata);
+          
           if (!processedAssets?.length) return;
         } else {
           processedAssets = result?.nfts?.map((item: any) => ({

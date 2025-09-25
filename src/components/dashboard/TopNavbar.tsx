@@ -11,6 +11,7 @@ import { STORAGE_KEYS, storageUtils } from '@/constants/storage';
 import { useTokenName } from '@/contexts/TokenNameContext';
 import { CURRENT_NETWORK, Network } from '@/config/network';
 import { getNetworkColor, getNetworkHoverColor } from '@/config/colors';
+import { enhancedSearch, SearchResult } from '@/utils';
 
 interface TopNavbarProps {
   primaryColor?: string;
@@ -45,10 +46,10 @@ interface SearchBarProps {
   searchQuery: string;
   selectedOption: SearchOption;
   isSearchFocused: boolean;
-  searchData: any[];
+  searchData: SearchResult[];
   onSearch: (value: string) => void;
   onOptionSelect: (option: SearchOption) => void;
-  onResultClick: (data: any) => void;
+  onResultClick: (searchResult: SearchResult) => void;
   onFocus: () => void;
   onBlur: () => void;
 }
@@ -214,21 +215,19 @@ const ADDITIONAL_NAVIGATION: NavItem[] = [
   }
 ];
 
-const CREATOR_NAVIGATION: NavItem[] = [
+const COMPETITIONS_NAVIGATION: NavItem[] = [
   {
-    id: 'my-uploads',
-    label: 'My Uploads',
-    icon: 'M7 4V20M7 4L3 8M7 4L11 8M17 4V20M17 4L13 8M17 4L21 8'
-  },
+    id: 'competitions',
+    label: 'Competitions',
+    icon: 'M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a1.875 1.875 0 010 3.75H9.497a1.875 1.875 0 010-3.75M7.5 4.5v8.25m0 0H4.875c-.621 0-1.125-.504-1.125-1.125V4.5c0-.621.504-1.125 1.125-1.125H7.5m3.75 9.75h2.25c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125h-2.25c-.621 0-1.125-.504-1.125-1.125v-1.5c0-.621.504-1.125 1.125-1.125m1.5-9.75H15c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125h-2.25c-.621 0-1.125-.504-1.125-1.125v-1.5c0-.621.504-1.125 1.125-1.125M7.5 4.5h3.375c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125H7.5c-.621 0-1.125-.504-1.125-1.125v-1.5c0-.621.504-1.125 1.125-1.125'
+  }
+];
+
+const SETTINGS: NavItem[] = [
   {
-    id: 'earnings',
-    label: 'Earnings',
-    icon: 'M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
-  },
-  {
-    id: 'withdraw',
-    label: 'Withdraw',
-    icon: 'M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z'
+    id: 'settings',
+    label: 'Settings',
+    icon: 'M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456a1.125 1.125 0 00-1.075.124c-.073.044-.146.087-.22.127-.332.183-.582.495-.645.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.127.332-.183.582-.495.644-.869l.214-1.281z'
   }
 ];
 
@@ -260,18 +259,26 @@ const filterSearchData = (data: any[], query: string, type: string): any[] => {
   const normalizedQuery = normalizeSearchQuery(query);
   
   if (type === 'infra') {
-    return data?.filter((item: any) => 
-      item?.name?.toLowerCase()?.includes(normalizedQuery)
-    ) || [];
+    return data?.filter((item: any) => {
+      const nameMatch = item?.name?.toLowerCase()?.includes(normalizedQuery);
+      const descriptionMatch = item?.description?.toLowerCase()?.includes(normalizedQuery);
+      return nameMatch || descriptionMatch;
+    }) || [];
   }
   
-  return data?.filter((item: any) =>
-    item?.metadata?.type === type &&
-    item?.usageHistory &&
-    Array.isArray(item.usageHistory) &&
-    item.usageHistory.length > 0 &&
-    item?.metadata?.name?.toLowerCase().includes(normalizedQuery)
-  ) || [];
+  return data?.filter((item: any) => {
+    if (item?.metadata?.type !== type || 
+        !item?.usageHistory || 
+        !Array.isArray(item.usageHistory) || 
+        item.usageHistory.length === 0) {
+      return false;
+    }
+    
+    const nameMatch = item?.metadata?.name?.toLowerCase()?.includes(normalizedQuery);
+    const descriptionMatch = item?.metadata?.description?.toLowerCase()?.includes(normalizedQuery);
+    
+    return nameMatch || descriptionMatch;
+  }) || [];
 };
 
 const createSlug = (name: string): string => {
@@ -456,14 +463,19 @@ const SearchBar: React.FC<SearchBarProps> = ({
             {searchQuery && (
               <div className={LAYOUT_CLASSES.searchResults} style={{ top: 50 }}>
                 {searchData?.length > 0 ? (
-                  searchData.map((data: any, index: number) => (
-                    <p 
+                  searchData.map((searchResult: SearchResult, index: number) => (
+                    <div 
                       key={index}
-                      onClick={() => onResultClick(data)} 
-                      className={LAYOUT_CLASSES.searchResultItem}
+                      onClick={() => onResultClick(searchResult)} 
+                      className="p-2 text-white hover:bg-gray-800 rounded cursor-pointer"
                     >
-                      {data?.metadata?.name || data?.name}
-                    </p>
+                      <div className="font-medium">{searchResult.item?.metadata?.name || searchResult.item?.name}</div>
+                      {(searchResult.item?.metadata?.description || searchResult.item?.description) && (
+                        <div className="text-sm text-gray-300 mt-1 truncate">
+                          {searchResult.item?.metadata?.description || searchResult.item?.description}
+                        </div>
+                      )}
+                    </div>
                   ))
                 ) : (
                   <p className={LAYOUT_CLASSES.searchResultEmpty}>No Data Available</p>
@@ -673,26 +685,6 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                           </button>
                         ))}
 
-                        
-                        {isAuthenticated && (
-                          <div className={MOBILE_MENU_CLASSES.subMenu}>
-                            {CREATOR_NAVIGATION.map((item) => (
-                              <button
-                                key={item.id}
-                                onClick={() => {
-                                  onNavigate(`/dashboard/${item.id}`);
-                                  onClose();
-                                }}
-                                className={MOBILE_MENU_CLASSES.menuItem}
-                              >
-                                <svg className="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d={item.icon} />
-                                </svg>
-                                {item.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     </div>
 
@@ -742,7 +734,7 @@ export function TopNavbar({ primaryColor }: TopNavbarProps = {}) {
   const location = useLocation();
   const { isAuthenticated, setIsAuthenticated, setConnectedWallet, connectedWallet, logout, setShowExtensionModal,
     nftData, infraProviders, tokenBalance, refreshBalance } = useAuth();
-  const [searchData, setSearchData] = useState<any[]>([]);
+  const [searchData, setSearchData] = useState<SearchResult[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
   const [hasUploads, setHasUploads] = useState({
     models: false,
@@ -844,13 +836,22 @@ export function TopNavbar({ primaryColor }: TopNavbarProps = {}) {
     }
     
     if (selectedOption?.id === "infra") {
-      setSearchData(filterSearchData(infraProviders || [], value, selectedOption.id));
+      const results = enhancedSearch(infraProviders || [], value, selectedOption.id, {
+        includeDescription: true,
+        maxResults: 8
+      });
+      setSearchData(results);
     } else {
-      setSearchData(filterSearchData(nftData || [], value, selectedOption.id));
+      const results = enhancedSearch(nftData || [], value, selectedOption.id, {
+        includeDescription: true,
+        maxResults: 8
+      });
+      setSearchData(results);
     }
   };
 
-  const onClickResult = (data: any) => {
+  const onClickResult = (searchResult: SearchResult) => {
+    const data = searchResult.item;
     const slug = createSlug(data?.metadata?.name || data?.name);
     setSearchQuery('');
     
@@ -874,7 +875,7 @@ export function TopNavbar({ primaryColor }: TopNavbarProps = {}) {
   };
 
   return (
-    <nav className={`fixed top-0 right-0 left-0 z-20 bg-[#191919] border-b border-border${showBanner ? ' mt-10' : ''}`}>
+    <nav className={`fixed right-0 left-0 z-20 bg-[#191919] border-b border-border${showBanner ? ' top-[2.25rem]' : ' top-0'}`}>
       <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 relative">
           <div className="flex items-center">
@@ -953,7 +954,16 @@ export function TopNavbar({ primaryColor }: TopNavbarProps = {}) {
                         <kbd className="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-gray-500">/</kbd>
                       </div>
                       {searchQuery ? <div ref={searchRef} className="absolute h-100 bg-black max-h-[200px] min-h-[50px]  [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] cursor-pointer overflow-auto scroll-hidden shadow-lg p-2 w-full rounded-lg z-50" style={{ top: 50 }}>
-                        {searchData?.length > 0 ? searchData?.map((data: any) => <p onClick={() => onClickResult(data)} className='p-2 text-white'>{data?.metadata?.name || data?.name}</p>)
+                        {searchData?.length > 0 ? searchData?.map((searchResult: SearchResult, index: number) => (
+                          <div key={index} onClick={() => onClickResult(searchResult)} className='p-2 text-white hover:bg-gray-800 rounded cursor-pointer'>
+                            <div className="font-medium">{searchResult.item?.metadata?.name || searchResult.item?.name}</div>
+                            {(searchResult.item?.metadata?.description || searchResult.item?.description) && (
+                              <div className="text-sm text-gray-300 mt-1 truncate">
+                                {searchResult.item?.metadata?.description || searchResult.item?.description}
+                              </div>
+                            )}
+                          </div>
+                        ))
                           : <p className='p-2 text-white text-center'>No Data Available</p>}
                       </div> : null}
                     </div>
@@ -1202,7 +1212,7 @@ export function TopNavbar({ primaryColor }: TopNavbarProps = {}) {
                 <div className="px-4 py-6">
                   <div className="flow-root">
                     <div className="space-y-8">
-                      {/* Main Navigation */}
+                      {/* BUY Section */}
                       <div>
                         <h3 className="px-3 text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">BUY</h3>
                         <div className="space-y-1">
@@ -1224,7 +1234,7 @@ export function TopNavbar({ primaryColor }: TopNavbarProps = {}) {
                         </div>
                       </div>
 
-                      
+                      {/* SELL Section */}
                       <div>
                         <h3 className="px-3 text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">SELL</h3>
                         <div className="space-y-1">
@@ -1243,35 +1253,58 @@ export function TopNavbar({ primaryColor }: TopNavbarProps = {}) {
                               {item.label}
                             </button>
                           ))}
-
-                          
-                          {isAuthenticated && (
-                            <div className="pl-6 mt-2 space-y-1">
-                              {CREATOR_NAVIGATION.map((item) => (
-                                <button
-                                  key={item.id}
-                                  onClick={() => {
-                                    navigate(`/dashboard/${item.id}`);
-                                    setIsMobileMenuOpen(false);
-                                  }}
-                                  className="flex items-center w-full px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-[#222222] rounded-lg transition-colors"
-                                >
-                                  <svg className="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d={item.icon} />
-                                  </svg>
-                                  {item.label}
-                                </button>
-                              ))}
-                            </div>
-                          )}
                         </div>
                       </div>
 
-                     
+                      {/* COMPETITIONS Section */}
+                      <div>
+                        <h3 className="px-3 text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">COMPETITIONS</h3>
+                        <div className="space-y-1">
+                          {COMPETITIONS_NAVIGATION.map((item) => (
+                            <button
+                              key={item.id}
+                              onClick={() => {
+                                navigate(item.route || `/dashboard/${item.id}`);
+                                setIsMobileMenuOpen(false);
+                              }}
+                              className="flex items-center w-full px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-[#222222] rounded-lg transition-colors"
+                            >
+                              <svg className="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d={item.icon} />
+                              </svg>
+                              {item.label}
+                              <span className="ml-2 px-1.5 py-0.5 text-xs font-medium bg-red-500 text-white rounded-full">New</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* ADDITIONAL Section */}
                       <div>
                         <h3 className="px-3 text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">ADDITIONAL</h3>
                         <div className="space-y-1">
                           {ADDITIONAL_NAVIGATION.map((item) => (
+                            <button
+                              key={item.id}
+                              onClick={() => {
+                                navigate(item.route || `/dashboard/${item.id}`);
+                                setIsMobileMenuOpen(false);
+                              }}
+                              className="flex items-center w-full px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-[#222222] rounded-lg transition-colors"
+                            >
+                              <svg className="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d={item.icon} />
+                              </svg>
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Settings Section */}
+                      <div className="border-t border-gray-600 pt-6">
+                        <div className="space-y-1">
+                          {SETTINGS.map((item) => (
                             <button
                               key={item.id}
                               onClick={() => {
