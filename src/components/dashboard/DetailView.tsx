@@ -426,22 +426,59 @@ const FilesTab = ({ nftFile, loader }: FilesTabProps) => (
 
 const MetricsTab = ({ model, loader }: MetricsTabProps) => {
   // Mock data for demonstration - will be replaced with API call
+  // 📸 FOR SCREENSHOTS: Uncomment one scenario at a time to test different states
+  
+  // SCENARIO 1: Both params and metrics populated (DEFAULT)
+  // const mockApiResponse = {
+  //   "params": {
+  //     "alpha": "0.8",
+  //     "copy_X": "True",
+  //     "fit_intercept": "True",
+  //     "normalize": "False",
+  //     "max_iter": "1000",
+  //     "tol": "0.001"
+  //   },
+  //   "metrics": {
+  //     "training_r2_score": "0.45968099165560605",
+  //     "training_score": "0.45968099165560605",
+  //     "validation_r2_score": "0.42156789012345678",
+  //     "mse": "0.123456789",
+  //     "rmse": "0.351363060095964"
+  //   }
+  // };
+
+  // SCENARIO 2: Only metrics, no params - Uncomment below and comment above
+  // const mockApiResponse = {
+  //   "params": {},
+  //   "metrics": {
+  //     "training_r2_score": "0.45968099165560605",
+  //     "training_score": "0.45968099165560605",
+  //     "validation_r2_score": "0.42156789012345678",
+  //     "mse": "0.123456789",
+  //     "rmse": "0.351363060095964",
+  //     "mae": "0.287654321"
+  //   }
+  // };
+
+  // SCENARIO 3: Only params, no metrics - Uncomment below and comment above
+  // const mockApiResponse = {
+  //   "params": {
+  //     "alpha": "0.8",
+  //     "copy_X": "True",
+  //     "fit_intercept": "True",
+  //     "normalize": "False",
+  //     "max_iter": "1000",
+  //     "tol": "0.001",
+  //     "solver": "lbfgs",
+  //     "random_state": "42"
+  //   },
+  //   "metrics": {}
+  // };
+
+  // SCENARIO 4: Empty state - both empty - Uncomment below and comment above
   const mockApiResponse = {
-    "params": {
-      "alpha": "0.8",
-      "copy_X": "True",
-      "fit_intercept": "True",
-      "normalize": "False",
-      "max_iter": "1000",
-      "tol": "0.001"
-    },
-    "metrics": {
-      "training_r2_score": "0.45968099165560605",
-      "training_score": "0.45968099165560605",
-      "validation_r2_score": "0.42156789012345678",
-      "mse": "0.123456789",
-      "rmse": "0.351363060095964"
-    }
+    "params": {},
+    "metrics": {}
   };
 
   const downloadMetrics = () => {
@@ -510,6 +547,12 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
     </div>
   );
 
+  const hasAnyData = () => {
+    const hasParams = mockApiResponse.params && Object.keys(mockApiResponse.params).length > 0;
+    const hasMetrics = mockApiResponse.metrics && Object.keys(mockApiResponse.metrics).length > 0;
+    return hasParams || hasMetrics;
+  };
+
   return (
     <motion.div key="metrics" initial={ANIMATION_CONFIG.initial} animate={ANIMATION_CONFIG.animate}>
       {loader ? (
@@ -518,25 +561,47 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
         <div className={LAYOUT_CLASSES.tabContainer}>
           <div className="flex items-center justify-between mb-6">
             <h2 className={LAYOUT_CLASSES.tabTitle}>Model Parameters & Metrics</h2>
-            <button
-              onClick={downloadMetrics}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors"
-              style={{ backgroundColor: getNetworkColor() }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = getNetworkHoverColor()}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = getNetworkColor()}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Download
-            </button>
+            {hasAnyData() && (
+              <button
+                onClick={downloadMetrics}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors"
+                style={{ backgroundColor: getNetworkColor() }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = getNetworkHoverColor()}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = getNetworkColor()}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Download
+              </button>
+            )}
           </div>
           
-          {/* Parameters Table */}
-          {renderTable("Parameters", mockApiResponse.params, "params")}
-          
-          {/* Metrics Table */}
-          {renderTable("Performance Metrics", mockApiResponse.metrics, "metrics")}
+          {hasAnyData() ? (
+            <>
+              {/* Parameters Table - Only show if params exist */}
+              {mockApiResponse.params && Object.keys(mockApiResponse.params).length > 0 && 
+                renderTable("Parameters", mockApiResponse.params, "params")
+              }
+              
+              {/* Metrics Table - Only show if metrics exist */}
+              {mockApiResponse.metrics && Object.keys(mockApiResponse.metrics).length > 0 && 
+                renderTable("Performance Metrics", mockApiResponse.metrics, "metrics")
+              }
+            </>
+          ) : (
+            <div className="bg-white border border-gray-200 rounded-lg p-12">
+              <div className="text-center">
+                <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+                  <svg className="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Metrics or Params to display</h3>
+                <p className="text-gray-500 text-sm">This model doesn't have any parameters or performance metrics available yet.</p>
+              </div>
+            </div>
+          )}
           
         </div>
       )}
