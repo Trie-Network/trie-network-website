@@ -443,6 +443,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       const getTokenCount = await END_POINTS.get_ft_info_by_did({ did: connectedWallet?.did }) as any;
       
+      
       if (!getTokenCount?.status || getTokenCount?.ft_info?.length < 1) {
         return;
       }
