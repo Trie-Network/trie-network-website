@@ -27,7 +27,6 @@ export const saveToStorage = (prefix: string, key: string, data: any): void => {
     try {
         localStorage.setItem(getStorageKey(prefix, key), JSON.stringify(data));
     } catch (error) {
-        // Handle storage error silently
     }
 };
 

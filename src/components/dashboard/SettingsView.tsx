@@ -314,7 +314,7 @@ export function SettingsView({ primaryColor }: SettingsViewProps = {}) {
                 onConnect={handleConnectWallet} 
               />
 
-              {isWalletConnected(connectedWallet) && (
+              {isWalletConnected(connectedWallet) && connectedWallet && (
                 <WalletDetails 
                   connectedWallet={connectedWallet!} 
                   copied={copied} 
