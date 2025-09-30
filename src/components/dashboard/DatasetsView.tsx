@@ -139,10 +139,14 @@ const getDatasetData = (nftData: any[], compId?: string, compNftData?: any): any
 
   const datasets = filteredData?.filter((item: any) => item?.metadata?.type === 'dataset') || [];
   
-  return datasets.map(dataset => ({
-    ...dataset,
-    format: getFileFormat(dataset.nft_file_name || '')
-  }));
+  return datasets.map(dataset => {
+    const format = getFileFormat(dataset.nft_file_name || '');
+    return {
+      ...dataset,
+      format,
+      categories: [format] // Add categories array for filtering
+    };
+  });
 };
 
 

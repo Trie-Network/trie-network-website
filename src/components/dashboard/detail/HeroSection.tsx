@@ -58,8 +58,14 @@ const formatUpdateTime = (history: HistoryItem[]): string => {
   return moment(lastUpdate).format("DD-MMM-YYYY HH:mm:ss");
 };
 
-const getUpdateCount = (history: HistoryItem[]): number => {
-  return history?.length ? history.length - 1 : 0;
+const getDownloadCount = (history: HistoryItem[]): number => {
+  if (!history?.length) return 0;
+  // Filter history for "bought" events which represent actual purchases/downloads
+  const boughtEvents = history.filter(item => {
+    const description = String(item?.NFTData || '').toLowerCase();
+    return description.includes('bought by');
+  });
+  return boughtEvents.length;
 };
 
 const getInitials = (name: string): string => {
@@ -131,7 +137,7 @@ const QuickStats = ({ history, ratingData, onRateClick }: {
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
       </svg>
       <span className="font-medium text-gray-900">
-        {getUpdateCount(history)}
+        {getDownloadCount(history)}
       </span>
     </div>
     <div className="flex items-center gap-2">
