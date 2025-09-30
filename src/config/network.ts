@@ -156,7 +156,7 @@ const CONTRACT_ADDRESSES: ContractAddresses = {
     ? "QmS5DogBfk96voS54hhE4KemToGRWgGC6Fbk5cZboTNh3m"
     : "QmVScNzdPRuN2r7DYwcnr3PVFB4s6TPWv5o9iVWsuqyPeW",
   
-  FT_DENOM_CREATOR: (!isMainnet && !isTestnet)?"bafybmie3sriw6nnro5nmhgwembm7p4gynfvgkpghjoa23wkarqecvhvudi" : "bafybmifzar4metqgkm4ivtnvabmiouyi32y2x2ikpi5h4tflrfug2ghi5q",
+  FT_DENOM_CREATOR: "bafybmifzar4metqgkm4ivtnvabmiouyi32y2x2ikpi5h4tflrfug2ghi5q",
   
   FT_DENOM: "TRIE",
   
