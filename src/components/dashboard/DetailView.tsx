@@ -424,29 +424,125 @@ const FilesTab = ({ nftFile, loader }: FilesTabProps) => (
   </motion.div>
 );
 
-const MetricsTab = ({ model, loader }: MetricsTabProps) => (
-  <motion.div key="metrics" initial={ANIMATION_CONFIG.initial} animate={ANIMATION_CONFIG.animate}>
-    {loader ? (
-      <MetricsSkeleton />
-    ) : (
-      <div className={LAYOUT_CLASSES.tabContainer}>
-        <h2 className={LAYOUT_CLASSES.tabTitle}>Performance Metrics</h2>
-        <div className={LAYOUT_CLASSES.metricsGrid}>
-          {Object.entries(model.metadata).filter(([key]) =>
-            !["name", "description", "price", "type", "depinProviderDid"].includes(key)
-          ).map(([key, value]) => (
-            <div key={key} className={LAYOUT_CLASSES.metricItem}>
-              <div className={LAYOUT_CLASSES.metricLabel}>
-                {key.replace(/([A-Z])/g, ' $1').trim()}
-              </div>
-              <div className={LAYOUT_CLASSES.metricValue}>{String(value)}</div>
-            </div>
-          ))}
-        </div>
+const MetricsTab = ({ model, loader }: MetricsTabProps) => {
+  // Mock data for demonstration - will be replaced with API call
+  const mockApiResponse = {
+    "params": {
+      "alpha": "0.8",
+      "copy_X": "True",
+      "fit_intercept": "True",
+      "normalize": "False",
+      "max_iter": "1000",
+      "tol": "0.001"
+    },
+    "metrics": {
+      "training_r2_score": "0.45968099165560605",
+      "training_score": "0.45968099165560605",
+      "validation_r2_score": "0.42156789012345678",
+      "mse": "0.123456789",
+      "rmse": "0.351363060095964"
+    }
+  };
+
+  const downloadMetrics = () => {
+    // TODO: In future, this will download from the API endpoint
+    const metricsData = JSON.stringify(mockApiResponse, null, 2);
+    const blob = new Blob([metricsData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${model?.metadata?.name || 'model'}_metrics_and_params.json`;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success("Metrics and parameters downloaded successfully!");
+  };
+
+  const formatName = (key: string): string => {
+    return key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  const formatValue = (value: string): string => {
+    // Try to parse as number for better formatting
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue)) {
+      return numValue < 1 ? numValue.toFixed(6) : numValue.toLocaleString();
+    }
+    return value;
+  };
+
+  const renderTable = (title: string, data: Record<string, string>, tableId: string) => (
+    <div className="mb-8">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Name
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Value
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {Object.entries(data).map(([key, value]) => (
+              <tr key={`${tableId}-${key}`} className="hover:bg-gray-50 transition-colors">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {formatName(key)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                  {formatValue(value)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-    )}
-  </motion.div>
-);
+    </div>
+  );
+
+  return (
+    <motion.div key="metrics" initial={ANIMATION_CONFIG.initial} animate={ANIMATION_CONFIG.animate}>
+      {loader ? (
+        <MetricsSkeleton />
+      ) : (
+        <div className={LAYOUT_CLASSES.tabContainer}>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className={LAYOUT_CLASSES.tabTitle}>Model Parameters & Metrics</h2>
+            <button
+              onClick={downloadMetrics}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors"
+              style={{ backgroundColor: getNetworkColor() }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = getNetworkHoverColor()}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = getNetworkColor()}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Download
+            </button>
+          </div>
+          
+          {/* Parameters Table */}
+          {renderTable("Parameters", mockApiResponse.params, "params")}
+          
+          {/* Metrics Table */}
+          {renderTable("Performance Metrics", mockApiResponse.metrics, "metrics")}
+          
+        </div>
+      )}
+    </motion.div>
+  );
+};
 
 
 const Timeline = ({ historyData, onTransactionClick, sliceString }: TimelineProps) => (
