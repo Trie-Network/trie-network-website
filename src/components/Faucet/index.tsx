@@ -214,6 +214,10 @@ function Faucet({ className }: FaucetProps = {}) {
 
   const tokenName = useTokenName();
 
+  useEffect(() => {
+    document.title = 'Faucet | TRIE: AI Marketplace';
+  }, []);
+
  
   useEffect(() => {
     if (showModal) {

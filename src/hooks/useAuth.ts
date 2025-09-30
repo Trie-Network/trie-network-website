@@ -106,7 +106,6 @@ const authHookUtils: AuthHookUtility = {
       return { isValid: false, errors, warnings };
     }
 
-    // Check for required authentication properties
     const requiredProps: (keyof AuthContextType)[] = [
       'isAuthenticated',
       'login',
@@ -126,12 +125,10 @@ const authHookUtils: AuthHookUtility = {
       });
     }
 
-    // Check for wallet connection issues
     if (context.isAuthenticated && !context.connectedWallet) {
       warnings.push('User is authenticated but no wallet is connected');
     }
 
-    // Check for authentication method availability
     if (typeof context.login !== 'function') {
       warnings.push('Login method is not properly implemented');
     }
@@ -220,7 +217,6 @@ export function useAuth(options: UseAuthOptions = {}): AuthContextType {
   if (error) {
     hookStats.failedCalls++;
     
-    // Call error callback if provided
     if (onError) {
       onError(error);
     }
@@ -235,7 +231,6 @@ export function useAuth(options: UseAuthOptions = {}): AuthContextType {
   hookStats.successfulCalls++;
 
   if (enableDebugging && debugInfo) {
-    // Return context with debug information attached
     return {
       ...context!,
       _debug: debugInfo,

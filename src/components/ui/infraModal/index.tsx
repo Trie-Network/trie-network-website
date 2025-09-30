@@ -295,11 +295,31 @@ export function InfraModal({ onselectProvider }: InfraModalProps) {
     onselectProvider(provider);
   };
 
+  // Map GroupedInfraProvider to Platform format
+  const mappedProviders: Platform[] = infraProviders.map(group => ({
+    name: group.name,
+    description: group.description,
+    providers: group.providers.map(provider => ({
+      id: provider.providerDid, // Use providerDid as id
+      providerName: provider.providerName,
+      providerDid: provider.providerDid,
+      region: provider.region,
+      storage: provider.storage,
+      hostingCost: provider.hostingCost,
+      os: provider.os,
+      processor: provider.processor,
+      gpu: provider.gpu,
+      memory: provider.memory,
+      core: provider.core,
+      endpoints: provider.endpoints
+    }))
+  }));
+
   return (
     <div className={LAYOUT_CLASSES.container}>
       {!selectedPlatform ? (
         <PlatformGrid 
-          infraProviders={infraProviders} 
+          infraProviders={mappedProviders} 
           onPlatformSelect={handlePlatformSelect} 
         />
       ) : (

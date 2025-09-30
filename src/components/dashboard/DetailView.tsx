@@ -7,7 +7,6 @@ import {
   OverviewSkeleton,
   FilesSkeleton,
   MetricsSkeleton,
-  DiscussionsSkeleton,
 } from '@/components/ui';
 import { ChevronDown, ChevronRight, Clock, Hash } from 'lucide-react';
 import { HeroSection, NavigationTabs, Sidebar } from './detail';
@@ -69,10 +68,6 @@ interface MetricsTabProps {
   loader: boolean;
 }
 
-interface DiscussionsTabProps {
-  model: any;
-  loader: boolean;
-}
 
 interface HistoryTabProps {
   historyData: HistoryItem[];
@@ -91,7 +86,6 @@ const TABS: Tab[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'files', label: 'Files' },
   { id: 'metrics', label: 'Metrics' },
-  { id: 'discussions', label: 'Discussions' },
   { id: 'history', label: 'Usage History' }
 ];
 
@@ -123,12 +117,6 @@ const LAYOUT_CLASSES = {
   metricItem: 'bg-gray-50 rounded-lg p-4',
   metricLabel: 'text-sm text-gray-500 mb-1 capitalize',
   metricValue: 'text-2xl font-semibold text-gray-900',
-  discussionsContainer: 'bg-white rounded-xl border border-[#e1e3e5] p-6',
-  discussionsContent: 'text-center py-8',
-  discussionsIcon: 'w-12 h-12 text-gray-400 mx-auto mb-4',
-  discussionsTitle: 'text-lg font-medium text-gray-900 mb-2',
-  discussionsDescription: 'text-gray-500 mb-4',
-  discussionsButton: 'inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white',
   historyContainer: 'bg-white rounded-xl border border-[#e1e3e5] p-6',
   historyHeader: 'mb-6',
   historyTitle: 'text-lg font-semibold text-gray-900 mb-2',
@@ -445,7 +433,17 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => (
         <h2 className={LAYOUT_CLASSES.tabTitle}>Performance Metrics</h2>
         <div className={LAYOUT_CLASSES.metricsGrid}>
           {Object.entries(model.metadata).filter(([key]) =>
-            !["name", "description", "price", "type", "depinProviderDid"].includes(key)
+            ["accuracy", "precision", "recall", "f1Score"].includes(key)
+          ).map(([key, value]) => (
+            <div key={key} className={LAYOUT_CLASSES.metricItem}>
+              <div className={LAYOUT_CLASSES.metricLabel}>
+                {key === 'f1Score' ? 'F1 Score' : key.charAt(0).toUpperCase() + key.slice(1)}
+              </div>
+              <div className={LAYOUT_CLASSES.metricValue}>{String(value) || '—'}</div>
+            </div>
+          ))}
+          {Object.entries(model.metadata).filter(([key]) =>
+            !["name", "description", "price", "type", "depinProviderDid", "category", "mainCategory", "accuracy", "precision", "recall", "f1Score"].includes(key)
           ).map(([key, value]) => (
             <div key={key} className={LAYOUT_CLASSES.metricItem}>
               <div className={LAYOUT_CLASSES.metricLabel}>
@@ -460,38 +458,6 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => (
   </motion.div>
 );
 
-const DiscussionsTab = ({ model, loader }: DiscussionsTabProps) => (
-  <motion.div key="discussions" initial={ANIMATION_CONFIG.initial} animate={ANIMATION_CONFIG.animate}>
-    {loader ? (
-      <DiscussionsSkeleton />
-    ) : (
-      <div className={LAYOUT_CLASSES.discussionsContainer}>
-        <div className={LAYOUT_CLASSES.discussionsContent}>
-          <svg className={LAYOUT_CLASSES.discussionsIcon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-            />
-          </svg>
-          <h3 className={LAYOUT_CLASSES.discussionsTitle}>No discussions yet</h3>
-          <p className={LAYOUT_CLASSES.discussionsDescription}>
-            Be the first to start a discussion about this {model?.type}
-          </p>
-          <button 
-            className={LAYOUT_CLASSES.discussionsButton}
-            style={{ backgroundColor: getNetworkColor() }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = getNetworkHoverColor()}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = getNetworkColor()}
-          >
-            Start Discussion
-          </button>
-        </div>
-      </div>
-    )}
-  </motion.div>
-);
 
 const Timeline = ({ historyData, onTransactionClick, sliceString }: TimelineProps) => (
   <div className={LAYOUT_CLASSES.timelineContainer}>
@@ -541,7 +507,7 @@ const HistoryTab = ({ historyData, onTransactionClick, sliceString }: HistoryTab
 
 export function DetailView({ primaryColor = getNetworkColor() }: DetailViewProps = {}) {
   const { id: _ } = useParams();
-  const { connectedWallet, socketRef, setNftData, nftData, loader, infraProviders } = useAuth();
+  const { connectedWallet, socketRef, nftData, loader, infraProviders } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -613,15 +579,6 @@ export function DetailView({ primaryColor = getNetworkColor() }: DetailViewProps
     let history = await END_POINTS.get_usage_history({ nft: model?.nft }) as any;
     if (history?.status && history?.NFTDataReply?.length) {
       setHistoryData(history?.NFTDataReply);
-      setNftData(nftData.map((item: any) => {
-        if (item.nft == model?.nft) {
-          return {
-            ...item,
-            usageHistory: history?.NFTDataReply
-          };
-        }
-        return item;
-      }));
     }
   }
 
@@ -712,9 +669,6 @@ export function DetailView({ primaryColor = getNetworkColor() }: DetailViewProps
                   <MetricsTab model={model} loader={loader} />
                 )}
 
-                {activeTab === 'discussions' && (
-                  <DiscussionsTab model={model} loader={loader} />
-                )}
 
                 {activeTab === 'history' && (
                   <HistoryTab

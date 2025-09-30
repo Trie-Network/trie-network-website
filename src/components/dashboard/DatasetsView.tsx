@@ -20,7 +20,6 @@ interface DatasetModalities {
 
 interface FormatCategories {
   'File Formats': string[];
-  'Folder Types': string[];
   [key: string]: string[];
 }
 
@@ -64,66 +63,12 @@ interface EmptyStateProps {
 
 const ITEMS_PER_PAGE = 12;
 
-const CATEGORY_ICONS: CategoryIcons = {
-  '3D': {
-    icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 018.25 20.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z',
-    color: 'bg-gradient-to-br from-blue-500 to-indigo-500'
-  },
-  'Audio': {
-    icon: 'M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z',
-    color: 'bg-gradient-to-br from-purple-500 to-pink-500'
-  },
-  'Geospatial': {
-    icon: 'M15 10.5a3 3 0 11-6 0 3 3 0 016 0z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z',
-    color: 'bg-gradient-to-br from-amber-500 to-orange-500'
-  },
-  'Image': {
-    icon: 'M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z',
-    color: 'bg-gradient-to-br from-green-500 to-emerald-500'
-  },
-  'Tabular': {
-    icon: 'M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5c-.621 0-1.125-.504-1.125-1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125-.504-1.125-1.125v-1.5c0-.621.504-1.125 1.125-1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M13.125 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M20.625 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5M12 14.625v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 14.625c0 .621.504 1.125 1.125 1.125M10.875 16.5h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M18.375 16.5c.621 0 1.125.504 1.125 1.125M3.375 5.625c0-.621.504-1.125 1.125-1.125h1.5c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125h-1.5A1.125 1.125 0 013.375 7.125v-1.5zm17.25 0c0-.621-.504-1.125-1.125-1.125h-1.5c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125h1.5c.621 0 1.125-.504 1.125-1.125v-1.5zm-17.25 12c0-.621.504-1.125 1.125-1.125h1.5c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5zm17.25 0c0-.621-.504-1.125-1.125-1.125h-1.5c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125h1.5c.621 0 1.125-.504 1.125-1.125v-1.5z',
-    color: 'bg-gradient-to-br from-red-500 to-rose-500'
-  },
-  'Text': {
-    icon: 'M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z',
-    color: 'bg-gradient-to-br from-cyan-500 to-blue-500'
-  },
-  'Time-series': {
-    icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z',
-    color: 'bg-gradient-to-br from-violet-500 to-purple-500'
-  },
-  'Video': {
-    icon: 'M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z',
-    color: 'bg-gradient-to-br from-fuchsia-500 to-pink-500'
-  }
-};
-
-const DATASET_MODALITIES: DatasetModalities = {
-  'Modalities': [
-    '3D',
-    'Audio',
-    'Geospatial',
-    'Image',
-    'Tabular',
-    'Text',
-    'Time-series',
-    'Video'
-  ]
-};
 
 const FORMAT_CATEGORIES: FormatCategories = {
   'File Formats': [
     'json',
     'csv',
-    'parquet',
-    'arrow'
-  ],
-  'Folder Types': [
-    'imagefolder',
-    'soundfolder',
-    'webdataset',
-    'text'
+    'misc'
   ]
 };
 
@@ -134,7 +79,7 @@ const LAYOUT_CLASSES = {
   filterSection: 'bg-white rounded-xl shadow-sm border border-[#e1e3e5] p-6',
   filterTitle: 'text-lg font-semibold text-gray-900',
   filterItems: 'space-y-2',
-  formatButton: 'w-full text-left px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-2',
+  formatButton: 'w-full text-left px-3 py-2 text-sm text-gray-600 hover:text-gray-900 rounded-lg transition-all duration-200 flex items-center gap-2 group relative cursor-pointer min-h-[40px]',
   formatIcon: 'w-5 h-5 bg-gradient-to-br from-gray-500 to-gray-600 rounded flex items-center justify-center text-white',
   formatText: 'font-mono',
   mobileFilterButton: 'inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50',
@@ -169,12 +114,17 @@ const filterItemsBySearch = (
   return filtered;
 };
 
-const getFilteredCategories = (searchQuery: string): DatasetModalities => {
-  return filterItemsBySearch(DATASET_MODALITIES, searchQuery) as unknown as DatasetModalities;
-};
 
 const getFilteredFormats = (searchQuery: string): FormatCategories => {
   return filterItemsBySearch(FORMAT_CATEGORIES, searchQuery) as unknown as FormatCategories;
+};
+
+const getFileFormat = (fileName: string): string => {
+  const extension = fileName.split('.').pop()?.toLowerCase() || '';
+
+  if (extension == 'csv') return 'csv';
+  if (extension == 'json') return 'json';
+  return 'misc';
 };
 
 const getDatasetData = (nftData: any[], compId?: string, compNftData?: any): any[] => {
@@ -187,7 +137,12 @@ const getDatasetData = (nftData: any[], compId?: string, compNftData?: any): any
     filteredData = compNftData[compId];
   }
 
-  return filteredData?.filter((item: any) => item?.metadata?.type === 'dataset') || [];
+  const datasets = filteredData?.filter((item: any) => item?.metadata?.type === 'dataset') || [];
+  
+  return datasets.map(dataset => ({
+    ...dataset,
+    format: getFileFormat(dataset.nft_file_name || '')
+  }));
 };
 
 
@@ -208,7 +163,12 @@ const FilterSection = ({
         isFormatSection ? (
           <button
             key={item}
-            className={LAYOUT_CLASSES.formatButton}
+            className={`${LAYOUT_CLASSES.formatButton} ${
+              selectedFilters.has(item) 
+                ? 'bg-[#0284a5]/5 hover:bg-[#0284a5]/10' 
+                : 'hover:bg-gray-50'
+            }`}
+            onClick={() => onFilterSelect(item)}
           >
             <div className={LAYOUT_CLASSES.formatIcon}>
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,7 +180,22 @@ const FilterSection = ({
                 />
               </svg>
             </div>
-            <span className={LAYOUT_CLASSES.formatText}>.{item}</span>
+            <span className={`${LAYOUT_CLASSES.formatText} ${
+              selectedFilters.has(item) ? 'font-semibold text-[#0284a5]' : ''
+            }`}>.{item}</span>
+            {selectedFilters.has(item) && (
+              <button
+                className="ml-auto p-1 rounded-full hover:bg-[#0284a5]/20 transition-colors cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFilterSelect(item);
+                }}
+              >
+                <svg className="w-4 h-4 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </button>
         ) : (
           <FilterButton
@@ -352,10 +327,6 @@ export function DatasetsView({ primaryColor = getNetworkColor(), compId }: Datas
     }));
   };
 
-  const filteredCategories = useMemo(() => 
-    getFilteredCategories(searchQuery), 
-    [searchQuery]
-  );
 
   const filteredFormats = useMemo(() => 
     getFilteredFormats(searchQuery), 
@@ -377,16 +348,6 @@ export function DatasetsView({ primaryColor = getNetworkColor(), compId }: Datas
             />
           </div>
 
-          {Object.entries(filteredCategories).map(([category, modalities]) => (
-            <FilterSection
-              key={category}
-              title={category}
-              items={modalities}
-              categoryIcons={CATEGORY_ICONS}
-              selectedFilters={selectedFilters}
-              onFilterSelect={handleFilterSelect}
-            />
-          ))}
 
           {Object.entries(filteredFormats).map(([category, formats]) => (
             <FilterSection
@@ -437,8 +398,7 @@ export function DatasetsView({ primaryColor = getNetworkColor(), compId }: Datas
 
       
       <div 
-        className={LAYOUT_CLASSES.sidebar} 
-        style={{ display: 'none' }}
+        className={LAYOUT_CLASSES.sidebar}
       >
         {loader ? (
           <>
@@ -478,16 +438,6 @@ export function DatasetsView({ primaryColor = getNetworkColor(), compId }: Datas
               />
             </div>
 
-            {Object.entries(filteredCategories).map(([category, modalities]) => (
-              <FilterSection
-                key={category}
-                title={category}
-                items={modalities}
-                categoryIcons={CATEGORY_ICONS}
-                selectedFilters={selectedFilters}
-                onFilterSelect={handleFilterSelect}
-              />
-            ))}
 
             {Object.entries(filteredFormats).map(([category, formats]) => (
               <FilterSection
