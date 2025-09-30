@@ -424,29 +424,190 @@ const FilesTab = ({ nftFile, loader }: FilesTabProps) => (
   </motion.div>
 );
 
-const MetricsTab = ({ model, loader }: MetricsTabProps) => (
-  <motion.div key="metrics" initial={ANIMATION_CONFIG.initial} animate={ANIMATION_CONFIG.animate}>
-    {loader ? (
-      <MetricsSkeleton />
-    ) : (
-      <div className={LAYOUT_CLASSES.tabContainer}>
-        <h2 className={LAYOUT_CLASSES.tabTitle}>Performance Metrics</h2>
-        <div className={LAYOUT_CLASSES.metricsGrid}>
-          {Object.entries(model.metadata).filter(([key]) =>
-            !["name", "description", "price", "type", "depinProviderDid"].includes(key)
-          ).map(([key, value]) => (
-            <div key={key} className={LAYOUT_CLASSES.metricItem}>
-              <div className={LAYOUT_CLASSES.metricLabel}>
-                {key.replace(/([A-Z])/g, ' $1').trim()}
-              </div>
-              <div className={LAYOUT_CLASSES.metricValue}>{String(value)}</div>
-            </div>
-          ))}
-        </div>
+const MetricsTab = ({ model, loader }: MetricsTabProps) => {
+  // Mock data for demonstration - will be replaced with API call
+  // 📸 FOR SCREENSHOTS: Uncomment one scenario at a time to test different states
+  
+  // SCENARIO 1: Both params and metrics populated (DEFAULT)
+  // const mockApiResponse = {
+  //   "params": {
+  //     "alpha": "0.8",
+  //     "copy_X": "True",
+  //     "fit_intercept": "True",
+  //     "normalize": "False",
+  //     "max_iter": "1000",
+  //     "tol": "0.001"
+  //   },
+  //   "metrics": {
+  //     "training_r2_score": "0.45968099165560605",
+  //     "training_score": "0.45968099165560605",
+  //     "validation_r2_score": "0.42156789012345678",
+  //     "mse": "0.123456789",
+  //     "rmse": "0.351363060095964"
+  //   }
+  // };
+
+  // SCENARIO 2: Only metrics, no params - Uncomment below and comment above
+  // const mockApiResponse = {
+  //   "params": {},
+  //   "metrics": {
+  //     "training_r2_score": "0.45968099165560605",
+  //     "training_score": "0.45968099165560605",
+  //     "validation_r2_score": "0.42156789012345678",
+  //     "mse": "0.123456789",
+  //     "rmse": "0.351363060095964",
+  //     "mae": "0.287654321"
+  //   }
+  // };
+
+  // SCENARIO 3: Only params, no metrics - Uncomment below and comment above
+  // const mockApiResponse = {
+  //   "params": {
+  //     "alpha": "0.8",
+  //     "copy_X": "True",
+  //     "fit_intercept": "True",
+  //     "normalize": "False",
+  //     "max_iter": "1000",
+  //     "tol": "0.001",
+  //     "solver": "lbfgs",
+  //     "random_state": "42"
+  //   },
+  //   "metrics": {}
+  // };
+
+  // SCENARIO 4: Empty state - both empty - Uncomment below and comment above
+  const mockApiResponse = {
+    "params": {},
+    "metrics": {}
+  };
+
+  const downloadMetrics = () => {
+    // TODO: In future, this will download from the API endpoint
+    const metricsData = JSON.stringify(mockApiResponse, null, 2);
+    const blob = new Blob([metricsData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${model?.metadata?.name || 'model'}_metrics_and_params.json`;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success("Metrics and parameters downloaded successfully!");
+  };
+
+  const formatName = (key: string): string => {
+    return key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  const formatValue = (value: string): string => {
+    // Try to parse as number for better formatting
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue)) {
+      return numValue < 1 ? numValue.toFixed(6) : numValue.toLocaleString();
+    }
+    return value;
+  };
+
+  const renderTable = (title: string, data: Record<string, string>, tableId: string) => (
+    <div className="mb-8">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Name
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Value
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {Object.entries(data).map(([key, value]) => (
+              <tr key={`${tableId}-${key}`} className="hover:bg-gray-50 transition-colors">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {formatName(key)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                  {formatValue(value)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-    )}
-  </motion.div>
-);
+    </div>
+  );
+
+  const hasAnyData = () => {
+    const hasParams = mockApiResponse.params && Object.keys(mockApiResponse.params).length > 0;
+    const hasMetrics = mockApiResponse.metrics && Object.keys(mockApiResponse.metrics).length > 0;
+    return hasParams || hasMetrics;
+  };
+
+  return (
+    <motion.div key="metrics" initial={ANIMATION_CONFIG.initial} animate={ANIMATION_CONFIG.animate}>
+      {loader ? (
+        <MetricsSkeleton />
+      ) : (
+        <div className={LAYOUT_CLASSES.tabContainer}>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className={LAYOUT_CLASSES.tabTitle}>Model Parameters & Metrics</h2>
+            {hasAnyData() && (
+              <button
+                onClick={downloadMetrics}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors"
+                style={{ backgroundColor: getNetworkColor() }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = getNetworkHoverColor()}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = getNetworkColor()}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Download
+              </button>
+            )}
+          </div>
+          
+          {hasAnyData() ? (
+            <>
+              {/* Parameters Table - Only show if params exist */}
+              {mockApiResponse.params && Object.keys(mockApiResponse.params).length > 0 && 
+                renderTable("Parameters", mockApiResponse.params, "params")
+              }
+              
+              {/* Metrics Table - Only show if metrics exist */}
+              {mockApiResponse.metrics && Object.keys(mockApiResponse.metrics).length > 0 && 
+                renderTable("Performance Metrics", mockApiResponse.metrics, "metrics")
+              }
+            </>
+          ) : (
+            <div className="bg-white border border-gray-200 rounded-lg p-12">
+              <div className="text-center">
+                <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+                  <svg className="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Metrics or Params to display</h3>
+                <p className="text-gray-500 text-sm">This model doesn't have any parameters or performance metrics available yet.</p>
+              </div>
+            </div>
+          )}
+          
+        </div>
+      )}
+    </motion.div>
+  );
+};
 
 
 const Timeline = ({ historyData, onTransactionClick, sliceString }: TimelineProps) => (

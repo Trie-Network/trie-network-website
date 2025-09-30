@@ -365,23 +365,42 @@ const createExecuteData = (data: any, connectedWallet: any) => {
   };
 };
 
-const validateFileUpload = (files: File[], url?: string): boolean => {
-  if (files.length > 0 && url && url.length > 0) {
-    toast.error("Please provide either a file upload or a Hugging Face model URL, not both.");
+const validateFileUpload = (files: File[], metadataFiles: File[], url?: string): boolean => {
+  const hasFiles = files.length > 0;
+  const hasUrl = url && url.length > 0;
+  const hasMetadata = metadataFiles.length > 0;
+  
+  const uploadMethods = [hasFiles, hasUrl, hasMetadata].filter(Boolean).length;
+  
+  if (uploadMethods > 1) {
+    toast.error("Please provide only one upload method: file upload, Hugging Face model URL, or MLflow SQLite file.");
     return false;
   }
   
-  if (files.length === 0 && (!url || url.length === 0)) {
-    toast.error("Please upload a file or provide a Hugging Face model URL.");
+  if (uploadMethods === 0) {
+    toast.error("Please upload a file, provide a Hugging Face model URL, or upload an MLflow SQLite file.");
     return false;
   }
   
-  if (files.length > 0) {
+  if (hasFiles) {
     const fname = `${parseInt(Date.now().toString())}_${files[0]?.name}`;
     const invalidExtensions = ['.jpg', '.png', '.jpeg', '.gif'];
     
     if (invalidExtensions.some(ext => fname.toLowerCase().endsWith(ext))) {
       toast.error("Please provide a valid model file. Image files are not allowed.");
+      return false;
+    }
+  }
+  
+  if (hasMetadata) {
+    const metadataFile = metadataFiles[0];
+    const validExtensions = ['.db', '.sqlite', '.sqlite3'];
+    const hasValidExtension = validExtensions.some(ext => 
+      metadataFile.name.toLowerCase().endsWith(ext)
+    );
+    
+    if (!hasValidExtension) {
+      toast.error("Please provide a valid MLflow SQLite file (.db, .sqlite, .sqlite3).");
       return false;
     }
   }
@@ -411,6 +430,7 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
     },
     category: '',
     files: [] as File[],
+    metadataFiles: [] as File[],
     pricing: {
       price: '',
       model: '',
@@ -576,21 +596,14 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
 
     let asset_id, fname;
 
+    // Validate upload methods
+    if (!validateFileUpload(formData?.files || [], formData?.metadataFiles || [], formData?.url)) {
+      return;
+    }
+
     if (formData?.files?.length > 0) {
       const formDatas = new FormData();
-      if (formData?.url && formData?.url?.length > 0) {
-        toast.error("Please provide either a file upload or a Hugging Face model URL, not both.");
-        return;
-      }
-
       fname = `${parseInt(Date.now().toString())}_${formData.files[0]?.name}`;
-
-      const invalidExtensions = ['.jpg', '.png', '.jpeg', '.gif'];
-
-      if (invalidExtensions.some(ext => fname.toLowerCase().endsWith(ext))) {
-        toast.error("Please provide a valid model file. Image files are not allowed.");
-        return;
-      }
 
       const renamedFile = new File([formData.files[0]], fname, { type: formData.files[0].type });
       formDatas.append('file', renamedFile);
@@ -627,8 +640,29 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
       }
       asset_id = r1?.data?.data?.assetId;
       fname = r1?.data?.data?.fileName || fname;
+    } else if (formData?.metadataFiles?.length > 0) {
+      const formDatas = new FormData();
+      fname = `${parseInt(Date.now().toString())}_${formData.metadataFiles[0]?.name}`;
+      
+      const renamedFile = new File([formData.metadataFiles[0]], fname, { type: formData.metadataFiles[0].type });
+      formDatas.append('file', renamedFile);
+      
+      formDatas.append('assetName', fname);
+      formDatas.append('assetType', 'mlflow-metadata');
+      setUploading(true)
+      setUploadModelLoading(true)
+      
+      const r1 = await END_POINTS.upload_obj(selectProvider?.endpoints?.upload, formDatas)
+      if (!r1?.status) {
+        toast.error("Error uploading MLflow SQLite file. Please try again.");
+        setUploading(false)
+        setUploadModelLoading(false)
+        return;
+      }
+      asset_id = r1?.data?.data?.assetId;
+      fname = r1?.data?.data?.fileName || fname;
     } else {
-      toast.error("Please upload a file or provide a Hugging Face model URL.");
+      toast.error("Please upload a file, provide a Hugging Face model URL, or upload a metadata file.");
       return;
     }
 
@@ -730,6 +764,15 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
       setFormData((prev: any) => ({
         ...prev,
         files: Array.from(event.target.files || [])
+      }));
+    }
+  };
+
+  const handleMetadataFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      setFormData((prev: any) => ({
+        ...prev,
+        metadataFiles: Array.from(event.target.files || [])
       }));
     }
   };
@@ -945,6 +988,60 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
                   style={{ '--tw-ring-color': getNetworkColor() } as React.CSSProperties}
                   placeholder="e.g., https://huggingface.co/models/facebook/bart-large-cnn"
                 />
+              </div>
+            </div>
+          </div>
+
+          <div className='my-4 mt-6'>
+            <h3 className="text-lg font-semibold text-gray-900 mt-4">MLflow Compatible SQLite File</h3>
+            <div>
+              <label className="block text-sm mt-2 font-medium text-gray-700 mb-2">
+                Metadata Upload
+              </label>
+              <div
+                className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg transition-colors cursor-pointer ${
+                  formData?.metadataFiles?.length > 0
+                    ? 'border-green-300 bg-green-50'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <div className="space-y-1 text-center">
+                  <svg
+                    className="mx-auto h-12 w-12 text-gray-400"
+                    stroke="currentColor"
+                    fill="none"
+                    viewBox="0 0 48 48"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <div className="flex text-sm text-gray-600">
+                    <label
+                      htmlFor="metadata-file-upload"
+                      className="relative cursor-pointer bg-white rounded-md font-medium focus-within:outline-none"
+                      style={textStyle}
+                      onMouseOver={(e) => Object.assign(e.currentTarget.style, textHoverStyle)}
+                      onMouseOut={(e) => Object.assign(e.currentTarget.style, textStyle)}
+                    >
+                      <span>{formData?.metadataFiles?.length == 0 ? 'Upload MLflow compatible SQLite file' : formData?.metadataFiles?.[0]?.name}</span>
+                      <input
+                        id="metadata-file-upload"
+                        name="metadata-file-upload"
+                        type="file"
+                        className="sr-only"
+                        accept=".db,.sqlite,.sqlite3"
+                        onChange={handleMetadataFileSelect}
+                      />
+                    </label>
+                    {formData?.metadataFiles?.length == 0 ? <p className="pl-1">or drag and drop</p> : null}
+                  </div>
+                  {formData?.metadataFiles?.length == 0 ? <p className="text-xs text-gray-500">SQLite database files (.db, .sqlite, .sqlite3) up to 10 GB</p> : null}
+                </div>
               </div>
             </div>
           </div>
