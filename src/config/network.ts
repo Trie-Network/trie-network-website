@@ -182,7 +182,7 @@ const API_ENDPOINTS: ApiEndpoints = {
   
   faucet: isMainnet ? "" : 
           isTestnet ? "https://trie-faucet-api.trie.network" :
-          "http://dev-faucet-api.trie.network:443",
+          "http://dev-faucet-api.trie.network:8443",
   
   metrics: isMainnet 
     ? "https://mainnet.xellwallet.com:8449/" 
