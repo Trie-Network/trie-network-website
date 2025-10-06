@@ -425,78 +425,75 @@ const FilesTab = ({ nftFile, loader }: FilesTabProps) => (
 );
 
 const MetricsTab = ({ model, loader }: MetricsTabProps) => {
-  // Mock data for demonstration - will be replaced with API call
-  // 📸 FOR SCREENSHOTS: Uncomment one scenario at a time to test different states
-  
-  // SCENARIO 1: Both params and metrics populated (DEFAULT)
-  // const mockApiResponse = {
-  //   "params": {
-  //     "alpha": "0.8",
-  //     "copy_X": "True",
-  //     "fit_intercept": "True",
-  //     "normalize": "False",
-  //     "max_iter": "1000",
-  //     "tol": "0.001"
-  //   },
-  //   "metrics": {
-  //     "training_r2_score": "0.45968099165560605",
-  //     "training_score": "0.45968099165560605",
-  //     "validation_r2_score": "0.42156789012345678",
-  //     "mse": "0.123456789",
-  //     "rmse": "0.351363060095964"
-  //   }
-  // };
+  const [metricsData, setMetricsData] = useState<{
+    params: Record<string, string>;
+    metrics: Record<string, string>;
+  }>({
+    params: {},
+    metrics: {}
+  });
+  const [loadingMetrics, setLoadingMetrics] = useState(true);
 
-  // SCENARIO 2: Only metrics, no params - Uncomment below and comment above
-  // const mockApiResponse = {
-  //   "params": {},
-  //   "metrics": {
-  //     "training_r2_score": "0.45968099165560605",
-  //     "training_score": "0.45968099165560605",
-  //     "validation_r2_score": "0.42156789012345678",
-  //     "mse": "0.123456789",
-  //     "rmse": "0.351363060095964",
-  //     "mae": "0.287654321"
-  //   }
-  // };
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      if (!model?.nft) {
+        setLoadingMetrics(false);
+        return;
+      }
 
-  // SCENARIO 3: Only params, no metrics - Uncomment below and comment above
-  // const mockApiResponse = {
-  //   "params": {
-  //     "alpha": "0.8",
-  //     "copy_X": "True",
-  //     "fit_intercept": "True",
-  //     "normalize": "False",
-  //     "max_iter": "1000",
-  //     "tol": "0.001",
-  //     "solver": "lbfgs",
-  //     "random_state": "42"
-  //   },
-  //   "metrics": {}
-  // };
+      try {
+        setLoadingMetrics(true);
+        const response = await END_POINTS.get_model_metadata(model.nft);
+        
+        if (response?.data) {
+          setMetricsData({
+            params: response.data.params || {},
+            metrics: response.data.metrics || {}
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching model metadata:", error);
+        toast.error("Failed to load model metrics");
+        setMetricsData({ params: {}, metrics: {} });
+      } finally {
+        setLoadingMetrics(false);
+      }
+    };
 
-  // SCENARIO 4: Empty state - both empty - Uncomment below and comment above
-  const mockApiResponse = {
-    "params": {},
-    "metrics": {}
-  };
+    fetchMetrics();
+  }, [model?.nft]);
 
-  const downloadMetrics = () => {
-    // TODO: In future, this will download from the API endpoint
-    const metricsData = JSON.stringify(mockApiResponse, null, 2);
-    const blob = new Blob([metricsData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${model?.metadata?.name || 'model'}_metrics_and_params.json`;
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    toast.success("Metrics and parameters downloaded successfully!");
+  const downloadMetrics = async () => {
+    if (!model?.nft) {
+      toast.error("Model asset ID not found");
+      return;
+    }
+
+    try {
+      const response = await END_POINTS.download_model_metadata(model.nft);
+      
+      if (response?.data) {
+        // Create blob from response
+        const blob = new Blob([response.data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${model?.metadata?.name || 'model'}_metrics_and_params.json`;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        toast.success("Metrics and parameters downloaded successfully!");
+      } else {
+        toast.error("No data received from server");
+      }
+    } catch (error) {
+      console.error("Error downloading metrics:", error);
+      toast.error("Failed to download metrics. Please try again.");
+    }
   };
 
   const formatName = (key: string): string => {
@@ -548,14 +545,14 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
   );
 
   const hasAnyData = () => {
-    const hasParams = mockApiResponse.params && Object.keys(mockApiResponse.params).length > 0;
-    const hasMetrics = mockApiResponse.metrics && Object.keys(mockApiResponse.metrics).length > 0;
+    const hasParams = metricsData.params && Object.keys(metricsData.params).length > 0;
+    const hasMetrics = metricsData.metrics && Object.keys(metricsData.metrics).length > 0;
     return hasParams || hasMetrics;
   };
 
   return (
     <motion.div key="metrics" initial={ANIMATION_CONFIG.initial} animate={ANIMATION_CONFIG.animate}>
-      {loader ? (
+      {loader || loadingMetrics ? (
         <MetricsSkeleton />
       ) : (
         <div className={LAYOUT_CLASSES.tabContainer}>
@@ -580,13 +577,13 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
           {hasAnyData() ? (
             <>
               {/* Parameters Table - Only show if params exist */}
-              {mockApiResponse.params && Object.keys(mockApiResponse.params).length > 0 && 
-                renderTable("Parameters", mockApiResponse.params, "params")
+              {metricsData.params && Object.keys(metricsData.params).length > 0 && 
+                renderTable("Parameters", metricsData.params, "params")
               }
               
               {/* Metrics Table - Only show if metrics exist */}
-              {mockApiResponse.metrics && Object.keys(mockApiResponse.metrics).length > 0 && 
-                renderTable("Performance Metrics", mockApiResponse.metrics, "metrics")
+              {metricsData.metrics && Object.keys(metricsData.metrics).length > 0 && 
+                renderTable("Performance Metrics", metricsData.metrics, "metrics")
               }
             </>
           ) : (

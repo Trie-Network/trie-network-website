@@ -370,18 +370,19 @@ const validateFileUpload = (files: File[], metadataFiles: File[], url?: string):
   const hasUrl = url && url.length > 0;
   const hasMetadata = metadataFiles.length > 0;
   
-  const uploadMethods = [hasFiles, hasUrl, hasMetadata].filter(Boolean).length;
-  
-  if (uploadMethods > 1) {
-    toast.error("Please provide only one upload method: file upload, Hugging Face model URL, or MLflow SQLite file.");
+  // Cannot have both file and URL
+  if (hasFiles && hasUrl) {
+    toast.error("Please provide either a file upload OR a Hugging Face URL, not both.");
     return false;
   }
   
-  if (uploadMethods === 0) {
+  // Must have at least file, URL, or metadata
+  if (!hasFiles && !hasUrl && !hasMetadata) {
     toast.error("Please upload a file, provide a Hugging Face model URL, or upload an MLflow SQLite file.");
     return false;
   }
   
+  // Validate file if provided
   if (hasFiles) {
     const fname = `${parseInt(Date.now().toString())}_${files[0]?.name}`;
     const invalidExtensions = ['.jpg', '.png', '.jpeg', '.gif'];
@@ -392,6 +393,7 @@ const validateFileUpload = (files: File[], metadataFiles: File[], url?: string):
     }
   }
   
+  // Validate metadata if provided
   if (hasMetadata) {
     const metadataFile = metadataFiles[0];
     const validExtensions = ['.db', '.sqlite', '.sqlite3'];
@@ -606,10 +608,17 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
       fname = `${parseInt(Date.now().toString())}_${formData.files[0]?.name}`;
 
       const renamedFile = new File([formData.files[0]], fname, { type: formData.files[0].type });
-      formDatas.append('file', renamedFile);
+      formDatas.append('assetFile', renamedFile);
 
       formDatas.append('assetName', fname);
       formDatas.append('assetType', 'model');
+      
+      // Add MLflow metadata if provided
+      if (formData?.metadataFiles?.length > 0) {
+        const metadataFile = formData.metadataFiles[0];
+        formDatas.append('modelMetadata', metadataFile);
+      }
+      
       setUploading(true) 
       setUploadModelLoading(true)
 
@@ -629,6 +638,13 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
       formDatas.append('assetName', fname);
       formDatas.append('assetType', 'model');
       formDatas.append('url', hfUrl);
+      
+      // Add MLflow metadata if provided (even with URL)
+      if (formData?.metadataFiles?.length > 0) {
+        const metadataFile = formData.metadataFiles[0];
+        formDatas.append('modelMetadata', metadataFile);
+      }
+      
       setUploading(true)
       setUploadModelLoading(true) 
       const r1 = await END_POINTS.upload_obj(selectProvider?.endpoints?.upload, formDatas)
@@ -641,20 +657,21 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
       asset_id = r1?.data?.data?.assetId;
       fname = r1?.data?.data?.fileName || fname;
     } else if (formData?.metadataFiles?.length > 0) {
+      // MLflow metadata only (no model file)
       const formDatas = new FormData();
       fname = `${parseInt(Date.now().toString())}_${formData.metadataFiles[0]?.name}`;
       
-      const renamedFile = new File([formData.metadataFiles[0]], fname, { type: formData.metadataFiles[0].type });
-      formDatas.append('file', renamedFile);
+      const metadataFile = formData.metadataFiles[0];
+      formDatas.append('modelMetadata', metadataFile);
       
       formDatas.append('assetName', fname);
-      formDatas.append('assetType', 'mlflow-metadata');
+      formDatas.append('assetType', 'model');
       setUploading(true)
       setUploadModelLoading(true)
       
       const r1 = await END_POINTS.upload_obj(selectProvider?.endpoints?.upload, formDatas)
       if (!r1?.status) {
-        toast.error("Error uploading MLflow SQLite file. Please try again.");
+        toast.error("Error uploading MLflow metadata. Please try again.");
         setUploading(false)
         setUploadModelLoading(false)
         return;
