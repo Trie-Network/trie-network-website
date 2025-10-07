@@ -425,6 +425,7 @@ const FilesTab = ({ nftFile, loader }: FilesTabProps) => (
 );
 
 const MetricsTab = ({ model, loader }: MetricsTabProps) => {
+  const { infraProviders } = useAuth();
   const [metricsData, setMetricsData] = useState<{
     params: Record<string, string>;
     metrics: Record<string, string>;
@@ -441,10 +442,20 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
         return;
       }
 
+      // Get metrics fetch endpoint from infraProviders
+      const metricsFetchUrl = infraProviders?.[0]?.providers?.[0]?.endpoints?.mlflow?.metrics_fetch;
+
+      if (!metricsFetchUrl) {
+        console.error("MLFlow metrics_fetch endpoint not found in provider configuration");
+        toast.error("Metrics endpoint not configured");
+        setLoadingMetrics(false);
+        return;
+      }
+
       try {
         setLoadingMetrics(true);
-        const response = await END_POINTS.get_model_metadata(model.nft);
-        
+        const response = await axios.get(`${metricsFetchUrl}/${model.nft}`);
+
         if (response?.data) {
           setMetricsData({
             params: response.data.params || {},
@@ -461,7 +472,7 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
     };
 
     fetchMetrics();
-  }, [model?.nft]);
+  }, [model?.nft, infraProviders]);
 
   const downloadMetrics = async () => {
     if (!model?.nft) {
@@ -469,23 +480,34 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
       return;
     }
 
+    // Get metrics download endpoint from infraProviders
+    const metricsDownloadUrl = infraProviders?.[0]?.providers?.[0]?.endpoints?.mlflow?.metrics_download;
+
+    if (!metricsDownloadUrl) {
+      console.error("MLFlow metrics_download endpoint not found in provider configuration");
+      toast.error("Metrics download endpoint not configured");
+      return;
+    }
+
     try {
-      const response = await END_POINTS.download_model_metadata(model.nft);
-      
+      const response = await axios.get(`${metricsDownloadUrl}/${model.nft}`, {
+        responseType: 'blob'
+      });
+
       if (response?.data) {
         // Create blob from response
         const blob = new Blob([response.data], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        
+
         const link = document.createElement('a');
         link.href = url;
         link.download = `${model?.metadata?.name || 'model'}_metrics_and_params.json`;
-        
+
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        
+
         toast.success("Metrics and parameters downloaded successfully!");
       } else {
         toast.error("No data received from server");

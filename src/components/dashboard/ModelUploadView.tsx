@@ -660,15 +660,21 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
       // MLflow metadata only (no model file)
       const formDatas = new FormData();
       fname = `${parseInt(Date.now().toString())}_${formData.metadataFiles[0]?.name}`;
-      
+
       const metadataFile = formData.metadataFiles[0];
       formDatas.append('modelMetadata', metadataFile);
-      
+
       formDatas.append('assetName', fname);
       formDatas.append('assetType', 'model');
+
+      // Create a placeholder empty file to satisfy API requirement
+      const placeholderBlob = new Blob([''], { type: 'application/octet-stream' });
+      const placeholderFile = new File([placeholderBlob], fname, { type: 'application/octet-stream' });
+      formDatas.append('assetFile', placeholderFile);
+
       setUploading(true)
       setUploadModelLoading(true)
-      
+
       const r1 = await END_POINTS.upload_obj(selectProvider?.endpoints?.upload, formDatas)
       if (!r1?.status) {
         toast.error("Error uploading MLflow metadata. Please try again.");
