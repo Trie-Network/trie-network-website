@@ -495,26 +495,52 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
       });
 
       if (response?.data) {
-        // Create blob from response
-        const blob = new Blob([response.data], { type: 'application/json' });
+        // Try to get filename from Content-Disposition header first
+        const contentDisposition = response.headers['content-disposition'];
+        let filename: string | null = null;
+
+        if (contentDisposition) {
+          // Try different patterns for filename extraction
+          const patterns = [
+            /filename\*=UTF-8''([^;]+)/,
+            /filename="([^"]+)"/,
+            /filename=([^;]+)/
+          ];
+
+          for (const pattern of patterns) {
+            const match = contentDisposition.match(pattern);
+            if (match && match[1]) {
+              filename = decodeURIComponent(match[1].replace(/['"]/g, ''));
+              break;
+            }
+          }
+        }
+
+        // Fallback to default filename if not found in headers
+        if (!filename) {
+          filename = 'mlflow.db';
+        }
+
+        // Use application/octet-stream to preserve the binary file
+        const blob = new Blob([response.data], { type: 'application/octet-stream' });
         const url = URL.createObjectURL(blob);
 
         const link = document.createElement('a');
         link.href = url;
-        link.download = `${model?.metadata?.name || 'model'}_metrics_and_params.json`;
+        link.download = filename;
 
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
 
-        toast.success("Metrics and parameters downloaded successfully!");
+        toast.success("Metadata file downloaded successfully!");
       } else {
         toast.error("No data received from server");
       }
     } catch (error) {
-      console.error("Error downloading metrics:", error);
-      toast.error("Failed to download metrics. Please try again.");
+      console.error("Error downloading metadata:", error);
+      toast.error("Failed to download metadata. Please try again.");
     }
   };
 

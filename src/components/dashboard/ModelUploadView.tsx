@@ -1031,12 +1031,9 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 bg-white text-gray-900"
                 >
-                  <option value="">Select platform</option>
-                  <option value="MLflow">MLflow</option>
+                  <option value="">Select Platform</option>
+                  <option value="MLflow">MLFlow</option>
                 </select>
-                <p className="mt-2 text-sm text-gray-600">
-                  Choose the metadata platform
-                </p>
               </div>
 
               {formData.metadataPlatform && (
@@ -1050,21 +1047,15 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 bg-white text-gray-900"
                   >
-                    <option value="">Select data source</option>
+                    <option value="">Select Data Source</option>
                     <option value="SQLite">SQLite</option>
                   </select>
-                  <p className="mt-2 text-sm text-gray-600">
-                    Select the metadata data source type
-                  </p>
                 </div>
               )}
             </div>
 
             {formData.metadataPlatform && formData.metadataDataSource && (
               <div className="mt-6">
-                <label className="block text-sm mt-2 font-medium text-gray-700 mb-2">
-                  Metadata Upload
-                </label>
                 <div
                   className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg transition-colors cursor-pointer ${
                     formData?.metadataFiles?.length > 0
@@ -1095,7 +1086,7 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
                         onMouseOver={(e) => Object.assign(e.currentTarget.style, textHoverStyle)}
                         onMouseOut={(e) => Object.assign(e.currentTarget.style, textStyle)}
                       >
-                        <span>{formData?.metadataFiles?.length == 0 ? 'Upload MLflow compatible SQLite file' : formData?.metadataFiles?.[0]?.name}</span>
+                        <span>{formData?.metadataFiles?.length == 0 ? 'Upload file' : formData?.metadataFiles?.[0]?.name}</span>
                         <input
                           id="metadata-file-upload"
                           name="metadata-file-upload"
@@ -1107,7 +1098,6 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
                       </label>
                       {formData?.metadataFiles?.length == 0 ? <p className="pl-1">or drag and drop</p> : null}
                     </div>
-                    {formData?.metadataFiles?.length == 0 ? <p className="text-xs text-gray-500">SQLite database files (.db, .sqlite, .sqlite3) up to 10 GB</p> : null}
                   </div>
                 </div>
               </div>
