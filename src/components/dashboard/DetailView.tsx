@@ -495,26 +495,31 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
       });
 
       if (response?.data) {
-        // Create blob from response
-        const blob = new Blob([response.data], { type: 'application/json' });
+        // Extract filename from Content-Disposition header or use model name
+        const contentDisposition = response.headers['content-disposition'];
+        const filenameMatch = contentDisposition?.match(/filename="?(.+?)"?$/);
+        const filename = filenameMatch ? filenameMatch[1] : `${model?.metadata?.name || 'metadata'}.db`;
+
+        // Download the file
+        const blob = new Blob([response.data], { type: 'application/octet-stream' });
         const url = URL.createObjectURL(blob);
 
         const link = document.createElement('a');
         link.href = url;
-        link.download = `${model?.metadata?.name || 'model'}_metrics_and_params.json`;
+        link.download = filename;
 
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
 
-        toast.success("Metrics and parameters downloaded successfully!");
+        toast.success("Metadata file downloaded successfully!");
       } else {
         toast.error("No data received from server");
       }
     } catch (error) {
-      console.error("Error downloading metrics:", error);
-      toast.error("Failed to download metrics. Please try again.");
+      console.error("Error downloading metadata:", error);
+      toast.error("Failed to download metadata. Please try again.");
     }
   };
 
