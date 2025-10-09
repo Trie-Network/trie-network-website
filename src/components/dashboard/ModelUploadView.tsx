@@ -433,6 +433,8 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
     category: '',
     files: [] as File[],
     metadataFiles: [] as File[],
+    metadataPlatform: '',
+    metadataDataSource: '',
     pricing: {
       price: '',
       model: '',
@@ -1016,57 +1018,100 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
           </div>
 
           <div className='my-4 mt-6'>
-            <h3 className="text-lg font-semibold text-gray-900 mt-4">MLflow Compatible SQLite File</h3>
-            <div>
-              <label className="block text-sm mt-2 font-medium text-gray-700 mb-2">
-                Metadata Upload
-              </label>
-              <div
-                className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg transition-colors cursor-pointer ${
-                  formData?.metadataFiles?.length > 0
-                    ? 'border-green-300 bg-green-50'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                <div className="space-y-1 text-center">
-                  <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
-                    stroke="currentColor"
-                    fill="none"
-                    viewBox="0 0 48 48"
-                    aria-hidden="true"
+            <h3 className="text-lg font-semibold text-gray-900 mt-4">Model Metadata</h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+              <div>
+                <label className="block text-base font-semibold text-gray-900 mb-2">
+                  Platform
+                </label>
+                <select
+                  name="metadataPlatform"
+                  value={formData.metadataPlatform}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 bg-white text-gray-900"
+                >
+                  <option value="">Select platform</option>
+                  <option value="MLflow">MLflow</option>
+                </select>
+                <p className="mt-2 text-sm text-gray-600">
+                  Choose the metadata platform
+                </p>
+              </div>
+
+              {formData.metadataPlatform && (
+                <div>
+                  <label className="block text-base font-semibold text-gray-900 mb-2">
+                    Data Source
+                  </label>
+                  <select
+                    name="metadataDataSource"
+                    value={formData.metadataDataSource}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 bg-white text-gray-900"
                   >
-                    <path
-                      d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <div className="flex text-sm text-gray-600">
-                    <label
-                      htmlFor="metadata-file-upload"
-                      className="relative cursor-pointer bg-white rounded-md font-medium focus-within:outline-none"
-                      style={textStyle}
-                      onMouseOver={(e) => Object.assign(e.currentTarget.style, textHoverStyle)}
-                      onMouseOut={(e) => Object.assign(e.currentTarget.style, textStyle)}
+                    <option value="">Select data source</option>
+                    <option value="SQLite">SQLite</option>
+                  </select>
+                  <p className="mt-2 text-sm text-gray-600">
+                    Select the metadata data source type
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {formData.metadataPlatform && formData.metadataDataSource && (
+              <div className="mt-6">
+                <label className="block text-sm mt-2 font-medium text-gray-700 mb-2">
+                  Metadata Upload
+                </label>
+                <div
+                  className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg transition-colors cursor-pointer ${
+                    formData?.metadataFiles?.length > 0
+                      ? 'border-green-300 bg-green-50'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  <div className="space-y-1 text-center">
+                    <svg
+                      className="mx-auto h-12 w-12 text-gray-400"
+                      stroke="currentColor"
+                      fill="none"
+                      viewBox="0 0 48 48"
+                      aria-hidden="true"
                     >
-                      <span>{formData?.metadataFiles?.length == 0 ? 'Upload MLflow compatible SQLite file' : formData?.metadataFiles?.[0]?.name}</span>
-                      <input
-                        id="metadata-file-upload"
-                        name="metadata-file-upload"
-                        type="file"
-                        className="sr-only"
-                        accept=".db,.sqlite,.sqlite3"
-                        onChange={handleMetadataFileSelect}
+                      <path
+                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                       />
-                    </label>
-                    {formData?.metadataFiles?.length == 0 ? <p className="pl-1">or drag and drop</p> : null}
+                    </svg>
+                    <div className="flex text-sm text-gray-600">
+                      <label
+                        htmlFor="metadata-file-upload"
+                        className="relative cursor-pointer bg-white rounded-md font-medium focus-within:outline-none"
+                        style={textStyle}
+                        onMouseOver={(e) => Object.assign(e.currentTarget.style, textHoverStyle)}
+                        onMouseOut={(e) => Object.assign(e.currentTarget.style, textStyle)}
+                      >
+                        <span>{formData?.metadataFiles?.length == 0 ? 'Upload MLflow compatible SQLite file' : formData?.metadataFiles?.[0]?.name}</span>
+                        <input
+                          id="metadata-file-upload"
+                          name="metadata-file-upload"
+                          type="file"
+                          className="sr-only"
+                          accept=".db,.sqlite,.sqlite3"
+                          onChange={handleMetadataFileSelect}
+                        />
+                      </label>
+                      {formData?.metadataFiles?.length == 0 ? <p className="pl-1">or drag and drop</p> : null}
+                    </div>
+                    {formData?.metadataFiles?.length == 0 ? <p className="text-xs text-gray-500">SQLite database files (.db, .sqlite, .sqlite3) up to 10 GB</p> : null}
                   </div>
-                  {formData?.metadataFiles?.length == 0 ? <p className="text-xs text-gray-500">SQLite database files (.db, .sqlite, .sqlite3) up to 10 GB</p> : null}
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Pricing Section */}
