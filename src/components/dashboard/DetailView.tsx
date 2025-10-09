@@ -495,33 +495,12 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
       });
 
       if (response?.data) {
-        // Try to get filename from Content-Disposition header first
+        // Extract filename from Content-Disposition header or use model name
         const contentDisposition = response.headers['content-disposition'];
-        let filename: string | null = null;
+        const filenameMatch = contentDisposition?.match(/filename="?(.+?)"?$/);
+        const filename = filenameMatch ? filenameMatch[1] : `${model?.metadata?.name || 'metadata'}.db`;
 
-        if (contentDisposition) {
-          // Try different patterns for filename extraction
-          const patterns = [
-            /filename\*=UTF-8''([^;]+)/,
-            /filename="([^"]+)"/,
-            /filename=([^;]+)/
-          ];
-
-          for (const pattern of patterns) {
-            const match = contentDisposition.match(pattern);
-            if (match && match[1]) {
-              filename = decodeURIComponent(match[1].replace(/['"]/g, ''));
-              break;
-            }
-          }
-        }
-
-        // Fallback to default filename if not found in headers
-        if (!filename) {
-          filename = 'mlflow.db';
-        }
-
-        // Use application/octet-stream to preserve the binary file
+        // Download the file
         const blob = new Blob([response.data], { type: 'application/octet-stream' });
         const url = URL.createObjectURL(blob);
 
