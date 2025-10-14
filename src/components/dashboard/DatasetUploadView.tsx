@@ -744,7 +744,7 @@ export function DatasetUploadView({ primaryColor = getNetworkColor(), compId }: 
     if (showModal) {
       timer = setTimeout(() => {
         setShowModal(false);
-        navigate('dashboard/assets');
+        navigate('/dashboard/assets', { state: { refresh: true, type: 'dataset' } });
       }, MODAL_TIMEOUT);
     }
     return () => {
@@ -754,7 +754,7 @@ export function DatasetUploadView({ primaryColor = getNetworkColor(), compId }: 
 
   const closeModal = () => {
     setShowModal(false);
-    navigate('dashboard/assets');
+    navigate('/dashboard/assets', { state: { refresh: true, type: 'dataset' } });
   };
 
   const onSelectProvider = (data: any) => {
