@@ -199,6 +199,12 @@ const sliceString = (str: string, charsToShow = 5): string => {
   return `${start}...${end}`;
 };
 
+const cleanFileName = (fileName: string | null): string => {
+  if (!fileName) return '';
+  // Remove timestamp prefix like "1760027621713_"
+  return fileName.replace(/^\d+_/, '');
+};
+
 const getBreadcrumbItems = (model: any) => [
   { label: 'Home', href: '/dashboard/all' },
   {
@@ -414,7 +420,7 @@ const FilesTab = ({ nftFile, loader }: FilesTabProps) => (
                 </svg>
               </div>
               <div>
-                <div className={LAYOUT_CLASSES.fileName}>{nftFile}</div>
+                <div className={LAYOUT_CLASSES.fileName}>{cleanFileName(nftFile)}</div>
               </div>
             </div>
           </div>

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { EmptyState, Skeleton } from '@/components/ui';
 import { END_POINTS } from '@/api/requests';
 import { useAuth } from '@/hooks';
 import { getRelativeTimeString } from '@/utils';
 import { getNetworkColor } from '../../config/colors';
 import { STORAGE_KEYS, storageUtils } from '@/constants/storage';
+import toast from 'react-hot-toast';
 
 
 interface Asset {
@@ -26,6 +27,15 @@ interface Asset {
 interface AssetsProps {
   primaryColor?: string;
   compId?: string | null;
+}
+
+type AssetTab = 'models' | 'datasets' | 'all';
+
+interface TabButtonProps {
+  active: boolean;
+  label: string;
+  count: number;
+  onClick: () => void;
 }
 
 interface AssetCardProps {
@@ -84,6 +94,36 @@ const getPaginationRange = (currentPage: number, itemsPerPage: number, totalItem
   return { startIndex, endIndex };
 };
 
+
+const TabButton = ({ active, label, count, onClick }: TabButtonProps) => (
+  <button
+    onClick={onClick}
+    className={`relative px-6 py-3 font-medium text-sm transition-all duration-200 ${
+      active
+        ? 'text-gray-900'
+        : 'text-gray-500 hover:text-gray-700'
+    }`}
+  >
+    <span className="flex items-center gap-2">
+      {label}
+      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+        active
+          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+          : 'bg-gray-100 text-gray-600'
+      }`}>
+        {count}
+      </span>
+    </span>
+    {active && (
+      <motion.div
+        layoutId="activeTab"
+        className="absolute bottom-0 left-0 right-0 h-0.5"
+        style={{ backgroundColor: getNetworkColor() }}
+        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+      />
+    )}
+  </button>
+);
 
 const Header = ({ isLoading, assetCount }: HeaderProps) => (
   <div className="bg-white rounded-xl border border-[#e1e3e5] p-6 mb-8 mx-4 md:mx-6 lg:mx-8 mt-8">
@@ -290,8 +330,11 @@ export function Assets({ primaryColor = getNetworkColor(), compId = null }: Asse
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [activeTab, setActiveTab] = useState<AssetTab>('all');
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
   const { nftData, refreshBalance } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const fetchAssets = async () => {
@@ -322,7 +365,7 @@ export function Assets({ primaryColor = getNetworkColor(), compId = null }: Asse
               };
             }
           }).filter(asset => asset && asset.metadata);
-          
+
           if (!processedAssets?.length) return;
         } else {
           processedAssets = result?.nfts?.map((item: any) => ({
@@ -330,15 +373,15 @@ export function Assets({ primaryColor = getNetworkColor(), compId = null }: Asse
             metadata: JSON.parse(item?.nft_metadata || '{}')
           })).filter((item: any) => item?.metadata?.compId === compId);
         }
-        
+
         setAssets(processedAssets);
       } catch (error) {
-        
+
       }
     };
 
     fetchAssets();
-  }, [compId, nftData]);
+  }, [compId, nftData, refetchTrigger]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -347,9 +390,58 @@ export function Assets({ primaryColor = getNetworkColor(), compId = null }: Asse
     return () => clearTimeout(timer);
   }, []);
 
-  const totalPages = Math.ceil(assets?.length / ITEMS_PER_PAGE);
+  // Handle refresh from upload pages
+  useEffect(() => {
+    const state = location.state as { refresh?: boolean; type?: string } | null;
+
+    if (state?.refresh) {
+      // Clear the state to prevent re-triggering on subsequent renders
+      navigate(location.pathname, { replace: true, state: {} });
+
+      // Show loading toast
+      const toastId = toast.loading('Fetching your newly uploaded asset...');
+
+      // Set appropriate tab based on type
+      if (state.type === 'model') {
+        setActiveTab('models');
+      } else if (state.type === 'dataset') {
+        setActiveTab('datasets');
+      }
+
+      // Retry logic: fetch multiple times with delays to give backend time to index
+      const retryFetch = async (attempt = 1, maxAttempts = 5) => {
+        const delay = attempt * 1500; // Increase delay with each attempt (1.5s, 3s, 4.5s, 6s, 7.5s)
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+        setRefetchTrigger(prev => prev + 1);
+
+        if (attempt < maxAttempts) {
+          setTimeout(() => retryFetch(attempt + 1, maxAttempts), delay);
+        } else {
+          toast.dismiss(toastId);
+          toast.success('Assets refreshed!');
+        }
+      };
+
+      retryFetch();
+    }
+  }, [location, navigate]);
+
+  // Filter assets by type
+  const filteredAssets = assets.filter((asset) => {
+    if (activeTab === 'all') return true;
+    if (activeTab === 'models') return asset?.metadata?.type === 'model';
+    if (activeTab === 'datasets') return asset?.metadata?.type === 'dataset';
+    return true;
+  });
+
+  // Calculate counts for tabs
+  const modelCount = assets.filter(a => a?.metadata?.type === 'model').length;
+  const datasetCount = assets.filter(a => a?.metadata?.type === 'dataset').length;
+
+  const totalPages = Math.ceil(filteredAssets?.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedAssets = assets.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const paginatedAssets = filteredAssets.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   const handleCardClick = (asset: Asset) => {
     const slug = createSlug(asset?.metadata?.name);
@@ -362,6 +454,11 @@ export function Assets({ primaryColor = getNetworkColor(), compId = null }: Asse
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleTabChange = (tab: AssetTab) => {
+    setActiveTab(tab);
+    setCurrentPage(1); // Reset to first page when changing tabs
   };
 
   if (assets.length === 0 && !isLoading) {
@@ -386,31 +483,73 @@ export function Assets({ primaryColor = getNetworkColor(), compId = null }: Asse
       <div className="max-w-6xl mx-auto">
         <Header isLoading={isLoading} assetCount={assets?.length} />
 
-        {/* Assets Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {isLoading ? (
-            <LoadingSkeleton />
-          ) : (
-            paginatedAssets?.map((asset: Asset, index: number) => (
-              <AssetCard
-                key={index}
-                asset={asset}
-                index={index}
-                onClick={handleCardClick}
-              />
-            ))
-          )}
+        {/* Tabs */}
+        <div className="bg-white rounded-xl border border-[#e1e3e5] mb-6 mx-4 md:mx-6 lg:mx-8 overflow-hidden">
+          <div className="flex border-b border-gray-200">
+            <TabButton
+              active={activeTab === 'all'}
+              label="All Assets"
+              count={assets?.length || 0}
+              onClick={() => handleTabChange('all')}
+            />
+            <TabButton
+              active={activeTab === 'models'}
+              label="AI Models"
+              count={modelCount}
+              onClick={() => handleTabChange('models')}
+            />
+            <TabButton
+              active={activeTab === 'datasets'}
+              label="Datasets"
+              count={datasetCount}
+              onClick={() => handleTabChange('datasets')}
+            />
+          </div>
         </div>
 
-       
-        {assets.length > ITEMS_PER_PAGE && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={assets?.length}
-            itemsPerPage={ITEMS_PER_PAGE}
-            onPageChange={handlePageChange}
-          />
+        {/* Assets Grid */}
+        {filteredAssets.length === 0 && !isLoading ? (
+          <div className="bg-white rounded-xl border border-[#e1e3e5] p-12 mx-4 md:mx-6 lg:mx-8 text-center">
+            <div className="text-gray-400 mb-3">
+              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              No {activeTab === 'models' ? 'AI Models' : activeTab === 'datasets' ? 'Datasets' : 'Assets'} Found
+            </h3>
+            <p className="text-gray-500">
+              You don't have any {activeTab === 'models' ? 'AI models' : activeTab === 'datasets' ? 'datasets' : 'assets'} yet.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              {isLoading ? (
+                <LoadingSkeleton />
+              ) : (
+                paginatedAssets?.map((asset: Asset, index: number) => (
+                  <AssetCard
+                    key={index}
+                    asset={asset}
+                    index={index}
+                    onClick={handleCardClick}
+                  />
+                ))
+              )}
+            </div>
+
+            {/* Pagination */}
+            {filteredAssets.length > ITEMS_PER_PAGE && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredAssets?.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                onPageChange={handlePageChange}
+              />
+            )}
+          </>
         )}
       </div>
     </div>

@@ -508,8 +508,8 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
     if (showModal) {
       timer = setTimeout(() => {
         setShowModal(false);
-        navigate('/dashboard/assets')
-      }, 5000); 
+        navigate('/dashboard/assets', { state: { refresh: true, type: 'model' } })
+      }, 5000);
     }
     return () => {
       if (timer) clearTimeout(timer);
@@ -518,7 +518,7 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
 
   const closeModal = () => {
     setShowModal(false);
-    navigate('/dashboard/assets')
+    navigate('/dashboard/assets', { state: { refresh: true, type: 'model' } })
   };
 
 
