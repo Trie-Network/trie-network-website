@@ -416,9 +416,9 @@ const validateFileUpload = (files: File[], metadataFiles: File[], url?: string):
     return false;
   }
   
-  // Must have at least file, URL, or metadata
+  // Asset field is mandatory - must have at least file, URL, or metadata
   if (!hasFiles && !hasUrl && !hasMetadata) {
-    toast.error("Please upload a file, provide a Hugging Face model URL, or upload an MLflow SQLite file.");
+    toast.error("Asset field is mandatory. Please upload a file, provide a Hugging Face model URL, or upload an MLflow SQLite file.");
     return false;
   }
   
@@ -899,8 +899,7 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
            
             <div>
               <label className="block text-base font-semibold text-gray-900 mb-2">
-                Model Name
-                <span className="text-red-500 ml-1">*</span>
+                Model Name <span style={{color: '#ef4444', marginLeft: '4px'}}>*</span>
               </label>
               <div className="relative">
                 <input
@@ -925,8 +924,7 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
 
             <div>
               <label className="block text-base font-semibold text-gray-900 mb-2">
-                Description
-                <span className="text-red-500 ml-1">*</span>
+                Description <span style={{color: '#ef4444', marginLeft: '4px'}}>*</span>
               </label>
               <div className="relative">
                 <textarea
@@ -1025,11 +1023,16 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
 
           </div>
           <div className='my-4 mt-6'>
-            <h3 className="text-lg font-semibold text-gray-900 mt-4">Asset</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mt-4">
+              <span>Asset</span> <span style={{color: '#dc2626', fontWeight: 'bold', fontSize: '18px'}}>*</span>
+            </h3>
             <div>
               <label className="block text-sm mt-2 font-medium text-gray-700 mb-2">
                 Asset Upload
               </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Upload your model file or provide a Hugging Face URL (at least one is required)
+              </p>
               <div
                 className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg transition-colors cursor-pointer ${isDragging
                   ? `border-[${getNetworkColor()}] bg-[${getNetworkColor()}]/5`

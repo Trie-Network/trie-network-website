@@ -321,7 +321,7 @@ const validateDetailsStep = (formData: FormData): boolean => {
   }
   
   if (formData?.files?.length === 0 && !formData?.url) {
-    toast.error("Please upload a file or provide a Hugging Face dataset URL.");
+    toast.error("Asset field is mandatory. Please upload a file or provide a Hugging Face dataset URL.");
     return false;
   }
   
@@ -346,7 +346,7 @@ const validateFormData = (formData: FormData): boolean => {
   }
   
   if (formData?.files?.length === 0 && !formData?.url) {
-    toast.error("Please upload a file or provide a Hugging Face dataset URL.");
+    toast.error("Asset field is mandatory. Please upload a file or provide a Hugging Face dataset URL.");
     return false;
   }
   
@@ -475,8 +475,7 @@ const DetailsStep = ({
   <div className={LAYOUT_CLASSES.stepContainer}>
     <div>
       <label className={LAYOUT_CLASSES.label}>
-        Dataset Name
-        <span className="text-red-500 ml-1">*</span>
+        Dataset Name <span style={{color: '#ef4444', marginLeft: '4px'}}>*</span>
       </label>
       <div className="relative">
         <input
@@ -498,8 +497,7 @@ const DetailsStep = ({
 
     <div>
       <label className={LAYOUT_CLASSES.label}>
-        Description
-        <span className="text-red-500 ml-1">*</span>
+        Description <span style={{color: '#ef4444', marginLeft: '4px'}}>*</span>
       </label>
       <div className="relative">
         <textarea
@@ -545,9 +543,14 @@ const DetailsStep = ({
     </div>
 
     <div className={LAYOUT_CLASSES.assetSection}>
-      <h3 className={LAYOUT_CLASSES.assetTitle}>Asset</h3>
+      <h3 className={LAYOUT_CLASSES.assetTitle}>
+        <span>Asset</span> <span style={{color: '#dc2626', fontWeight: 'bold', fontSize: '18px'}}>*</span>
+      </h3>
       <div>
         <label className={LAYOUT_CLASSES.label}>File</label>
+        <p className="text-xs text-gray-500 mb-2">
+          Upload your dataset file or provide a Hugging Face URL (at least one is required)
+        </p>
         <FileUploadArea
           formData={formData}
           onFileSelect={onFileSelect}
