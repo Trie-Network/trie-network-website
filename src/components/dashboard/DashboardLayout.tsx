@@ -29,11 +29,13 @@ interface NavigationSectionProps {
 }
 
 interface MobileNavigationProps {
+  homeNavigation: NavigationItem[];
   mainNavigation: NavigationItem[];
   settings: NavigationItem[];
 }
 
 interface SidebarProps {
+  homeNavigation: NavigationItem[];
   mainNavigation: NavigationItem[];
   uploadNavigation: NavigationItem[];
   competitionsNavigation: NavigationItem[];
@@ -50,6 +52,14 @@ const STORAGE_KEYS = {
   datasets: 'user_uploads_datasets',
   infra: 'user_uploads_infra'
 } as const;
+
+const HOME_NAVIGATION: NavigationItem[] = [
+  {
+    id: 'all',
+    label: 'Home',
+    icon: 'M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25'
+  }
+];
 
 const MAIN_NAVIGATION: NavigationItem[] = [
   {
@@ -129,7 +139,7 @@ const LAYOUT_CLASSES = {
   main: 'flex-1 pt-[84px] pb-[120px] md:pb-[84px] bg-[#f6f6f7] md:pt-[104px] md:pl-[280px] relative',
   mobileNav: 'fixed bottom-0 left-0 right-0 bg-white border-t border-[#e1e3e5] md:hidden z-20',
   mobileNavContainer: 'flex justify-around items-center py-2',
-  sidebar: 'w-[280px] hidden md:block flex-shrink-0 fixed left-0 top-[104px] bottom-0 border-r border-[#e1e3e5] pt-12 bg-[#f6f6f7] z-10',
+  sidebar: 'w-[280px] hidden md:block flex-shrink-0 fixed left-0 top-[104px] bottom-0 border-r border-[#e1e3e5] pt-12 bg-white z-10',
   sidebarContent: 'flex flex-col h-full px-6',
   navigationSection: 'space-y-1.5 mb-6',
   sectionTitle: 'px-3 mb-2',
@@ -168,10 +178,13 @@ const NavigationSection = ({ title, items, badge }: NavigationSectionProps) => (
   </div>
 );
 
-const MobileNavigation = ({ mainNavigation, settings }: MobileNavigationProps) => (
+const MobileNavigation = ({ homeNavigation, mainNavigation, settings }: MobileNavigationProps) => (
   <div className={LAYOUT_CLASSES.mobileNav}>
     <div className={LAYOUT_CLASSES.mobileNavContainer}>
-      {mainNavigation.slice(0, 2).map((item) => (
+      {homeNavigation.map((item) => (
+        <NavItem key={item.id} item={item} isMobile={true} />
+      ))}
+      {mainNavigation.slice(0, 1).map((item) => (
         <NavItem key={item.id} item={item} isMobile={true} />
       ))}
       <NavItem
@@ -184,6 +197,7 @@ const MobileNavigation = ({ mainNavigation, settings }: MobileNavigationProps) =
 );
 
 const Sidebar = ({ 
+  homeNavigation,
   mainNavigation, 
   uploadNavigation, 
   competitionsNavigation, 
@@ -195,6 +209,13 @@ const Sidebar = ({
 }: SidebarProps) => (
   <div className={LAYOUT_CLASSES.sidebar}>
     <div className={LAYOUT_CLASSES.sidebarContent}>
+     
+      <div className="space-y-1.5 mb-6">
+        {homeNavigation.map((item) => (
+          <NavItem key={item.id} item={item} />
+        ))}
+      </div>
+
      
       <NavigationSection title="BUY" items={mainNavigation} />
 
@@ -254,6 +275,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <main className={LAYOUT_CLASSES.main}>
         
         <MobileNavigation 
+          homeNavigation={HOME_NAVIGATION}
           mainNavigation={MAIN_NAVIGATION}
           settings={SETTINGS}
         />
@@ -261,6 +283,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="flex flex-col lg:flex-row">
         
           <Sidebar
+            homeNavigation={HOME_NAVIGATION}
             mainNavigation={MAIN_NAVIGATION}
             uploadNavigation={UPLOAD_NAVIGATION}
             competitionsNavigation={COMPETITIONS_NAVIGATION}

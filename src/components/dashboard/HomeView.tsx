@@ -4,7 +4,8 @@ import { motion, useInView, animate } from 'framer-motion';
 import {
   EmptyState,
   TrendingItemSkeleton,
-  Skeleton
+  Skeleton,
+  InfoIcon
 } from '@/components/ui';
 import { useAuth } from '@/hooks';
 import { getRelativeTimeString, sortByActivityCount, getActivitySummary } from '@/utils';
@@ -16,6 +17,7 @@ interface CounterProps {
   value: number;
   duration?: number;
   label: string;
+  tooltip?: string;
 }
 
 interface HomeViewProps {
@@ -53,6 +55,7 @@ interface StatsCardProps {
   value: number;
   label: string;
   isLoading: boolean;
+  tooltip?: string;
 }
 
 interface EmptyStateConfig {
@@ -67,8 +70,8 @@ interface EmptyStateConfig {
 
 const LAYOUT_CLASSES = {
   container: 'grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-112px)] pt-6 pb-16 px-4 md:px-6 lg:px-8',
-  mainContent: 'lg:col-span-3 h-[calc(100vh-112px)] overflow-y-auto pb-16 scrollbar-hide',
-  statsSection: 'bg-white rounded-xl border border-[#e1e3e5] p-6 mb-8 animate-fadeIn',
+  mainContent: 'lg:col-span-3 h-[calc(100vh-112px)] overflow-y-auto pb-16 scrollbar-hide relative overflow-x-visible',
+  statsSection: 'bg-white rounded-xl border border-[#e1e3e5] p-6 pt-12 mb-8 animate-fadeIn relative overflow-visible',
   statsTitle: 'text-xl font-bold text-gray-900 mb-4',
   statsGrid: 'grid grid-cols-2 md:grid-cols-4 gap-4',
   statsCard: 'bg-gray-50 p-4 rounded-lg',
@@ -122,6 +125,13 @@ const STATS_LABELS = {
   transactions: 'Transactions'
 } as const;
 
+const STATS_TOOLTIPS = {
+  aiModels: 'AI models available for inference and training',
+  datasets: 'Datasets available for training and research',
+  totalAssets: 'Combined count of all platform assets',
+  transactions: 'Total transactions processed on the platform'
+} as const;
+
 const NAVIGATION_PATHS = {
   models: '/dashboard/models',
   datasets: '/dashboard/datasets'
@@ -168,7 +178,7 @@ const getInitials = (name: string): string => {
 };
 
 
-const Counter = ({ value, duration = ANIMATION_CONFIG.counterDuration, label }: CounterProps) => {
+const Counter = ({ value, duration = ANIMATION_CONFIG.counterDuration, label, tooltip }: CounterProps) => {
   const nodeRef = useRef(null);
   const isInView = useInView(nodeRef, { once: true });
   const [displayValue, setDisplayValue] = useState(0);
@@ -197,12 +207,15 @@ const Counter = ({ value, duration = ANIMATION_CONFIG.counterDuration, label }: 
       >
         {displayValue}
       </motion.div>
-      <div className="text-sm text-gray-500 mt-2">{label}</div>
+      <div className="text-sm text-gray-500 mt-2 flex items-center justify-center">
+        <span>{label}</span>
+        {tooltip && <InfoIcon tooltip={tooltip} />}
+      </div>
     </div>
   );
 };
 
-const StatsCard = ({ value, label, isLoading }: StatsCardProps) => {
+const StatsCard = ({ value, label, isLoading, tooltip }: StatsCardProps) => {
   if (isLoading) {
     return (
       <div className={LAYOUT_CLASSES.statsCard}>
@@ -212,7 +225,7 @@ const StatsCard = ({ value, label, isLoading }: StatsCardProps) => {
     );
   }
 
-  return <Counter value={value} label={label} />;
+  return <Counter value={value} label={label} tooltip={tooltip} />;
 };
 
 const TrendingItemCard = ({ item, index, onClick }: TrendingItemCardProps) => (
@@ -317,16 +330,19 @@ const PlatformStats = ({ ModelMetrics, transactions, loader }: PlatformStatsProp
         value={ModelMetrics?.ai_model_count || 0}
         label={STATS_LABELS.aiModels}
         isLoading={loader}
+        tooltip={STATS_TOOLTIPS.aiModels}
       />
       <StatsCard
         value={ModelMetrics?.dataset_count || 0}
         label={STATS_LABELS.datasets}
         isLoading={loader}
+        tooltip={STATS_TOOLTIPS.datasets}
       />
       <StatsCard
         value={ModelMetrics?.asset_count || 0}
         label={STATS_LABELS.totalAssets}
         isLoading={loader}
+        tooltip={STATS_TOOLTIPS.totalAssets}
       />
       <StatsCard
         value={transactions?.transaction_count || 0}

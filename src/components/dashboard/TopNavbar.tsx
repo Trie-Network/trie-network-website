@@ -134,7 +134,7 @@ const LAYOUT_CLASSES = {
   logoutButton: 'w-full text-left px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-[#333333] flex items-center space-x-2',
   logoutButtonMobile: 'w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-background-tertiary flex items-center space-x-2',
   connectButton: 'inline-flex items-center px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-[#026d8a] transition-colors',
-  faucetButton: 'px-4 py-2 border border-none text-white rounded-md text-sm font-medium transition',
+  faucetButton: 'px-4 py-2 border rounded-md text-sm font-medium transition hover:bg-opacity-10',
   balanceText: 'text-white text-sm font-medium',
   mobileMenuButton: 'xl:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-[#222222] focus:outline-none',
   actionsContainer: 'flex items-center space-x-6'
@@ -369,9 +369,18 @@ const FaucetButton: React.FC<FaucetButtonProps> = ({ tokenName, onClick }) => {
     <button
       onClick={onClick}
       className={LAYOUT_CLASSES.faucetButton}
-      style={{ backgroundColor: getNetworkColor() }}
-      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = getNetworkHoverColor()}
-      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = getNetworkColor()}
+      style={{ 
+        borderColor: 'white',
+        color: 'white'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = 'white';
+        e.currentTarget.style.color = getNetworkColor();
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = 'transparent';
+        e.currentTarget.style.color = 'white';
+      }}
     >
       Request {tokenName.toUpperCase()} Tokens
     </button>
@@ -978,10 +987,19 @@ export function TopNavbar({ primaryColor }: TopNavbarProps = {}) {
             {tokenName === 'trie' && (
               <button
                 onClick={() => window.open('/faucet', '_blank')}
-                className="px-4 py-2 border border-none text-white rounded-md text-sm font-medium transition"
-                style={{ backgroundColor: getNetworkColor() }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = getNetworkHoverColor()}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = getNetworkColor()}
+                className={LAYOUT_CLASSES.faucetButton}
+                style={{ 
+                  borderColor: 'white',
+                  color: 'white'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'white';
+                  e.currentTarget.style.color = getNetworkColor();
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'white';
+                }}
               >
                 Request {tokenName.toUpperCase()} Tokens
               </button>
