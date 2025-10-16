@@ -182,7 +182,7 @@ const NavigationSection = ({
     compId: string; 
     primaryColor: string; 
 }) => (
-    <div className="space-y-1.5 mb-6">
+    <div className="space-y-1 mb-4">
         <div className="px-3 mb-2">
             <h2 className="font-display text-label text-gray-400 uppercase tracking-wider">{title}</h2>
         </div>
@@ -200,7 +200,7 @@ const Sidebar = ({
     compId: string; 
     primaryColor: string; 
 }) => (
-    <div className="w-[280px] hidden lg:block flex-shrink-0 fixed left-0 top-[144px] bottom-0 border-r border-[#e1e3e5] pt-4 bg-[#f6f6f7] z-10">
+    <div className="w-[280px] hidden lg:block flex-shrink-0 fixed left-0 top-[144px] bottom-0 pt-4 bg-[#f6f6f7] z-10">
         <div className="flex flex-col h-full px-6">
             <div className="mb-6">
                 <NavItem

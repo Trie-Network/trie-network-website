@@ -55,8 +55,8 @@ const ICON_CLASSES = {
 const BUTTON_CLASSES = {
   base: 'flex items-center text-sm font-medium rounded-lg transition-all duration-200 group',
   mobile: 'flex-col items-center justify-center p-2',
-  desktop: 'w-full px-3 py-2',
-  active: 'bg-white shadow-sm border border-gray-100',
+  desktop: 'w-full px-3 py-1.5',
+  active: '',
   inactive: 'text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm hover:border hover:border-gray-100'
 } as const;
 

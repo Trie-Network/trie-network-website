@@ -71,12 +71,12 @@ interface EmptyStateConfig {
 const LAYOUT_CLASSES = {
   container: 'grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-112px)] pt-6 pb-16 px-4 md:px-6 lg:px-8',
   mainContent: 'lg:col-span-3 h-[calc(100vh-112px)] overflow-y-auto pb-16 scrollbar-hide relative overflow-x-visible',
-  statsSection: 'bg-white rounded-xl border border-[#e1e3e5] p-6 pt-12 mb-8 animate-fadeIn relative overflow-visible',
+  statsSection: 'bg-white rounded-xl p-6 pt-12 mb-8 animate-fadeIn relative overflow-visible',
   statsTitle: 'text-xl font-bold text-gray-900 mb-4',
   statsGrid: 'grid grid-cols-2 md:grid-cols-4 gap-4',
-  statsCard: 'bg-gray-50 p-4 rounded-lg',
+  statsCard: 'bg-white border border-gray-200 p-4 rounded-lg',
   trendingGrid: 'grid grid-cols-1 md:grid-cols-2 gap-6 mb-8',
-  trendingCard: 'bg-white rounded-xl border border-[#e1e3e5] p-6',
+  trendingCard: 'bg-white rounded-xl p-6',
   trendingHeader: 'flex items-center gap-2 mb-4',
   trendingIcon: 'w-5 h-5 text-gray-600',
   trendingTitle: 'text-lg font-semibold text-gray-900',
@@ -177,6 +177,15 @@ const getInitials = (name: string): string => {
   return name?.charAt(0)?.toUpperCase() || '?';
 };
 
+const getItemIcon = (type: string): string => {
+  if (type === 'model') {
+    return 'M9 3.75H6.912a2.25 2.25 0 00-2.15 1.588L2.35 13.177a2.25 2.25 0 00-.1.661V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.15-1.588H15M2.25 15h19.5m-16.5 0h13.5M9 3.75l2.25 4.5m0 0L15 3.75M11.25 8.25h4.5';
+  } else if (type === 'dataset') {
+    return 'M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125';
+  }
+  return 'M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25';
+};
+
 
 const Counter = ({ value, duration = ANIMATION_CONFIG.counterDuration, label, tooltip }: CounterProps) => {
   const nodeRef = useRef(null);
@@ -198,12 +207,22 @@ const Counter = ({ value, duration = ANIMATION_CONFIG.counterDuration, label, to
   return (
     <div
       ref={nodeRef}
-      className="bg-white p-5 rounded-lg hover:shadow-md transition-all duration-300 border border-[#e1e3e5] group text-center"
+      className="bg-white border border-gray-200 p-5 rounded-lg hover:shadow-md transition-all duration-300 group text-center"
+      onMouseEnter={(e) => {
+        const numberElement = e.currentTarget.querySelector('.stats-number');
+        if (numberElement) {
+          numberElement.style.color = getNetworkColor();
+        }
+      }}
+      onMouseLeave={(e) => {
+        const numberElement = e.currentTarget.querySelector('.stats-number');
+        if (numberElement) {
+          numberElement.style.color = '#111827';
+        }
+      }}
     >
       <motion.div
-        className="text-2xl md:text-3xl font-bold text-gray-900 transition-colors"
-        onMouseEnter={(e) => e.currentTarget.style.color = getNetworkColor()}
-        onMouseLeave={(e) => e.currentTarget.style.color = '#111827'}
+        className="text-2xl md:text-3xl font-bold text-gray-900 transition-colors stats-number"
       >
         {displayValue}
       </motion.div>
@@ -228,13 +247,25 @@ const StatsCard = ({ value, label, isLoading, tooltip }: StatsCardProps) => {
   return <Counter value={value} label={label} tooltip={tooltip} />;
 };
 
-const TrendingItemCard = ({ item, index, onClick }: TrendingItemCardProps) => (
+const TrendingItemCard = ({ item, index, onClick, type }: TrendingItemCardProps & { type: string }) => (
   <div
     onClick={onClick}
     className={LAYOUT_CLASSES.trendingItem}
   >
     <div className={LAYOUT_CLASSES.trendingAvatar}>
-      {getInitials(item?.metadata?.name)}
+      <svg
+        className="w-4 h-4 text-gray-600"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.5"
+          d={getItemIcon(type)}
+        />
+      </svg>
     </div>
     <div className={LAYOUT_CLASSES.trendingContent}>
       <h3 className={LAYOUT_CLASSES.trendingName}>
@@ -247,7 +278,7 @@ const TrendingItemCard = ({ item, index, onClick }: TrendingItemCardProps) => (
   </div>
 );
 
-const TrendingItem = ({ item, index, navigate }: TrendingItemProps) => {
+const TrendingItem = ({ item, index, navigate, type }: TrendingItemProps & { type: string }) => {
   const handleClick = () => {
     const path = getNavigationPath(item);
     const state = getNavigationState(item);
@@ -259,6 +290,7 @@ const TrendingItem = ({ item, index, navigate }: TrendingItemProps) => {
       item={item}
       index={index}
       onClick={handleClick}
+      type={type}
     />
   );
 };
@@ -277,7 +309,6 @@ const TrendingSection = ({ title, data, loader, usageHistoryLoader, type, naviga
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
         </svg>
         <h2 className={LAYOUT_CLASSES.trendingTitle}>{title}</h2>
-        <span className={LAYOUT_CLASSES.trendingSubtitle}>(Top {TRENDING_CONFIG.maxItems})</span>
       </div>
 
       <div className={LAYOUT_CLASSES.trendingList}>
@@ -294,6 +325,7 @@ const TrendingSection = ({ title, data, loader, usageHistoryLoader, type, naviga
                   item={item}
                   index={index}
                   navigate={navigate}
+                  type={type}
                 />
               ))
             ) : (
@@ -400,7 +432,7 @@ export function HomeView({ primaryColor }: HomeViewProps = {}) {
 
         <div className={LAYOUT_CLASSES.trendingGrid}>
           <TrendingSection
-            title="AI Models"
+            title="Top 5 AI Models"
             data={modelData}
             loader={loader}
             usageHistoryLoader={usageHistoryLoader}
@@ -409,7 +441,7 @@ export function HomeView({ primaryColor }: HomeViewProps = {}) {
           />
 
           <TrendingSection
-            title="Datasets"
+            title="Top 5 Datasets"
             data={datasetData}
             loader={loader}
             usageHistoryLoader={usageHistoryLoader}

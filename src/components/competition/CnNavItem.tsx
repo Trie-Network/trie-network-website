@@ -34,10 +34,10 @@ const BASE_BUTTON_CLASSES = 'flex items-center text-sm font-medium rounded-lg tr
 const getButtonClasses = (isMobile: boolean, isActive: boolean): string => {
     const layoutClasses = isMobile 
         ? 'flex-col items-center justify-center p-2'
-        : 'w-full px-3 py-2';
+        : 'w-full px-3 py-1.5';
     
     const stateClasses = isActive
-        ? 'bg-white shadow-sm border border-gray-100'
+        ? 'bg-white'
         : 'text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm hover:border hover:border-gray-100';
     
     return `${BASE_BUTTON_CLASSES} ${layoutClasses} ${stateClasses}`;

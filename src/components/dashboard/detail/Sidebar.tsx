@@ -58,7 +58,7 @@ const getButtonStyle = (isLoading: boolean, networkColor: string) => ({
 
 
 const ItemImage = ({ item }: { item: Model }) => (
-  <div className="bg-white rounded-xl border border-[#e1e3e5] overflow-hidden">
+  <div className="bg-white rounded-xl overflow-hidden">
     <img 
       src={'/modelph.png'} 
       alt={item?.metadata?.name} 
@@ -159,7 +159,7 @@ export function Sidebar({
     <div className="w-full lg:w-80 space-y-6">
       <ItemImage item={item} />
 
-      <div className="bg-white rounded-xl border border-[#e1e3e5] p-6">
+      <div className="bg-white rounded-xl p-6">
         <BuyButton 
           item={item}
           onPurchase={onPurchase}

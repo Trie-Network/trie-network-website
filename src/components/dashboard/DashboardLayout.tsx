@@ -139,12 +139,12 @@ const LAYOUT_CLASSES = {
   main: 'flex-1 pt-[84px] pb-[120px] md:pb-[84px] bg-[#f6f6f7] md:pt-[104px] md:pl-[280px] relative',
   mobileNav: 'fixed bottom-0 left-0 right-0 bg-white border-t border-[#e1e3e5] md:hidden z-20',
   mobileNavContainer: 'flex justify-around items-center py-2',
-  sidebar: 'w-[280px] hidden md:block flex-shrink-0 fixed left-0 top-[104px] bottom-0 border-r border-[#e1e3e5] pt-12 bg-white z-10',
+  sidebar: 'w-[280px] hidden md:block flex-shrink-0 fixed left-0 top-[104px] bottom-0 pt-12 bg-[#e8eaed] z-10',
   sidebarContent: 'flex flex-col h-full px-6',
-  navigationSection: 'space-y-1.5 mb-6',
+  navigationSection: 'space-y-1 mb-4',
   sectionTitle: 'px-3 mb-2',
   sectionTitleText: 'font-display text-label text-gray-400 uppercase tracking-wider',
-  creatorSection: 'pl-6 mt-2 space-y-1',
+  creatorSection: 'pl-6 mt-1 space-y-0.5',
   settingsSection: 'mt-auto pt-4 pb-6 border-t border-[#e1e3e5] flex flex-col items-center',
   contentArea: 'flex-1 min-w-0 relative'
 } as const;
