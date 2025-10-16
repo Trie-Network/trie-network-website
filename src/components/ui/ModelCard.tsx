@@ -98,7 +98,7 @@ const MODEL_CARD_CLASSES = {
   image: 'w-full h-full object-cover transform group-hover:scale-105 transition-all duration-700 ease-out',
   imageOverlay: 'absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500',
   content: 'p-5 flex-1 flex flex-col',
-  creatorAvatar: 'w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-medium shadow-sm flex-shrink-0',
+  creatorAvatar: 'w-8 h-8 bg-gradient-to-br rounded-lg bg-gray-200 flex text-gray-900 items-center justify-center font-medium flex-shrink-0',
   creatorName: 'text-base font-semibold text-gray-900 leading-snug tracking-tight truncate font-display',
   creatorService: 'text-xs text-gray-500 truncate font-mono',
   description: 'text-sm text-gray-600 line-clamp-2 leading-relaxed mb-4',
@@ -117,6 +117,15 @@ const MODEL_CARD_DEFAULT_CONFIG = {
   defaultUpdateText: '-'
 } as const;
 
+
+const getItemIcon = (type: string): string => {
+  if (type === 'model') {
+    return 'M9 3.75H6.912a2.25 2.25 0 00-2.15 1.588L2.35 13.177a2.25 2.25 0 00-.1.661V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.15-1.588H15M2.25 15h19.5m-16.5 0h13.5M9 3.75l2.25 4.5m0 0L15 3.75M11.25 8.25h4.5';
+  } else if (type === 'dataset') {
+    return 'M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125';
+  }
+  return 'M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25';
+};
 
 const modelCardUtils = {
   
@@ -197,10 +206,22 @@ const ImageContainer: React.FC<ImageContainerProps> = ({ model, className = '' }
   </div>
 );
 
-const CreatorInfo: React.FC<ModelCardCreatorInfoProps> = ({ model, className = '' }) => (
+const CreatorInfo: React.FC<ModelCardCreatorInfoProps & { type?: string }> = ({ model, className = '', type = 'model' }) => (
   <div className={`flex items-center gap-2 mb-4 ${className}`}>
     <div className={MODEL_CARD_CLASSES.creatorAvatar}>
-      {modelCardUtils.getAvatarText(model?.metadata?.name)}
+      <svg
+        className="w-4 h-4 text-gray-600"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.5"
+          d={getItemIcon(type)}
+        />
+      </svg>
     </div>
     <div className="min-w-0">
       <h3 className={MODEL_CARD_CLASSES.creatorName}>
@@ -279,7 +300,7 @@ export function ModelCard({
       
       <div className={MODEL_CARD_CLASSES.content}>
         <div className="flex-1">
-          <CreatorInfo model={model} />
+          <CreatorInfo model={model} type={type} />
           
           <p className={MODEL_CARD_CLASSES.description}>
             {model?.metadata?.description}

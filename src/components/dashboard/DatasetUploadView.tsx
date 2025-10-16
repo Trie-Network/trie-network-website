@@ -434,30 +434,42 @@ const DetailsStep = ({
   <div className={LAYOUT_CLASSES.stepContainer}>
     <div>
       <label className={LAYOUT_CLASSES.label}>Dataset Name</label>
-      <input
-        type="text"
-        name="name"
-        value={formData.name}
-        onChange={onInputChange}
-        className={LAYOUT_CLASSES.inputField}
-        placeholder="e.g., Common Voice Dataset"
-        onFocus={(e) => Object.assign(e.target.style, getFocusRingStyle(primaryColor))}
-        onBlur={(e) => e.target.style.boxShadow = ''}
-      />
+      <div className="relative">
+        <input
+          type="text"
+          name="name"
+          value={formData.name}
+          onChange={onInputChange}
+          maxLength={100}
+          className={`${LAYOUT_CLASSES.inputField} pr-16`}
+          placeholder="e.g., Common Voice Dataset"
+          onFocus={(e) => Object.assign(e.target.style, getFocusRingStyle(primaryColor))}
+          onBlur={(e) => e.target.style.boxShadow = ''}
+        />
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+          {formData.name.length}/100
+        </div>
+      </div>
     </div>
 
     <div>
       <label className={LAYOUT_CLASSES.label}>Description</label>
-      <textarea
-        name="description"
-        value={formData.description}
-        onChange={onInputChange}
-        rows={4}
-        className={LAYOUT_CLASSES.textareaField}
-        placeholder="Describe your dataset's contents and potential use cases..."
-        onFocus={(e) => Object.assign(e.target.style, getFocusRingStyle(primaryColor))}
-        onBlur={(e) => e.target.style.boxShadow = ''}
-      />
+      <div className="relative">
+        <textarea
+          name="description"
+          value={formData.description}
+          onChange={onInputChange}
+          maxLength={1000}
+          rows={4}
+          className={`${LAYOUT_CLASSES.textareaField} pb-8`}
+          placeholder="Describe your dataset's contents and potential use cases..."
+          onFocus={(e) => Object.assign(e.target.style, getFocusRingStyle(primaryColor))}
+          onBlur={(e) => e.target.style.boxShadow = ''}
+        />
+        <div className="absolute bottom-2 right-3 text-xs text-gray-500">
+          {formData.description.length}/1000
+        </div>
+      </div>
     </div>
 
     <div>
@@ -503,15 +515,21 @@ const DetailsStep = ({
       <div>
         <label className={LAYOUT_CLASSES.label}>Hugging Face Dataset Link</label>
         <div className="flex gap-2 mt-4">
-          <input
-            type="text"
-            name="url"
-            value={formData?.url}
-            onChange={onInputChange}
-            className={LAYOUT_CLASSES.urlInput}
-            style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
-            placeholder="e.g., https://huggingface.co/datasets/nvidia/OpenScience"
-          />
+          <div className="relative flex-1">
+            <input
+              type="text"
+              name="url"
+              value={formData?.url}
+              onChange={onInputChange}
+              maxLength={500}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent bg-white text-gray-900 pr-16"
+              style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
+              placeholder="e.g., https://huggingface.co/datasets/nvidia/OpenScience"
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+              {formData?.url?.length || 0}/500
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -522,44 +540,62 @@ const MetadataStep = ({ formData, onInputChange, primaryColor }: MetadataStepPro
   <div className={LAYOUT_CLASSES.stepContainer}>
     <div>
       <label className={LAYOUT_CLASSES.label}>Dataset Size</label>
-      <input
-        type="text"
-        name="metadata.size"
-        value={formData.metadata.size}
-        onChange={onInputChange}
-        className={LAYOUT_CLASSES.inputField}
-        placeholder="e.g., 1.2GB"
-        onFocus={(e) => Object.assign(e.target.style, getFocusRingStyle(primaryColor))}
-        onBlur={(e) => e.target.style.boxShadow = ''}
-      />
+      <div className="relative">
+        <input
+          type="text"
+          name="metadata.size"
+          value={formData.metadata.size}
+          onChange={onInputChange}
+          maxLength={50}
+          className={`${LAYOUT_CLASSES.inputField} pr-16`}
+          placeholder="e.g., 1.2GB"
+          onFocus={(e) => Object.assign(e.target.style, getFocusRingStyle(primaryColor))}
+          onBlur={(e) => e.target.style.boxShadow = ''}
+        />
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+          {formData.metadata.size.length}/50
+        </div>
+      </div>
     </div>
 
     <div>
       <label className={LAYOUT_CLASSES.label}>Number of Rows</label>
-      <input
-        type="text"
-        name="metadata.rows"
-        value={formData.metadata.rows}
-        onChange={onInputChange}
-        className={LAYOUT_CLASSES.inputField}
-        placeholder="e.g., 1000000"
-        onFocus={(e) => Object.assign(e.target.style, getFocusRingStyle(primaryColor))}
-        onBlur={(e) => e.target.style.boxShadow = ''}
-      />
+      <div className="relative">
+        <input
+          type="text"
+          name="metadata.rows"
+          value={formData.metadata.rows}
+          onChange={onInputChange}
+          maxLength={20}
+          className={`${LAYOUT_CLASSES.inputField} pr-16`}
+          placeholder="e.g., 1000000"
+          onFocus={(e) => Object.assign(e.target.style, getFocusRingStyle(primaryColor))}
+          onBlur={(e) => e.target.style.boxShadow = ''}
+        />
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+          {formData.metadata.rows.length}/20
+        </div>
+      </div>
     </div>
 
     <div>
       <label className={LAYOUT_CLASSES.label}>Number of Columns</label>
-      <input
-        type="text"
-        name="metadata.columns"
-        value={formData.metadata.columns}
-        onChange={onInputChange}
-        className={LAYOUT_CLASSES.inputField}
-        placeholder="e.g., 15"
-        onFocus={(e) => Object.assign(e.target.style, getFocusRingStyle(primaryColor))}
-        onBlur={(e) => e.target.style.boxShadow = ''}
-      />
+      <div className="relative">
+        <input
+          type="text"
+          name="metadata.columns"
+          value={formData.metadata.columns}
+          onChange={onInputChange}
+          maxLength={20}
+          className={`${LAYOUT_CLASSES.inputField} pr-16`}
+          placeholder="e.g., 15"
+          onFocus={(e) => Object.assign(e.target.style, getFocusRingStyle(primaryColor))}
+          onBlur={(e) => e.target.style.boxShadow = ''}
+        />
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+          {formData.metadata.columns.length}/20
+        </div>
+      </div>
     </div>
   </div>
 );
@@ -946,42 +982,54 @@ export function DatasetUploadView({ primaryColor = getNetworkColor(), compId }: 
           currentStep={Object.values(STEPS).indexOf(currentStep) + 1}
           totalSteps={Object.values(STEPS).length}
         />
+        <div className="text-center mt-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">Upload Your Dataset</h1>
+          <p className="text-lg text-gray-600 font-medium">Share your dataset with the community</p>
+        </div>
       </div>
 
      
       {currentStep === STEPS.DETAILS && (
-        <DetailsStep
-          formData={formData}
-          onInputChange={handleInputChange}
-          onFileSelect={handleFileSelect}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          isDragging={isDragging}
-          onSelectProvider={() => setSelectModal(true)}
-          primaryColor={primaryColor}
-        />
+        <div className="bg-white rounded-xl border border-[#e1e3e5] p-8">
+          <DetailsStep
+            formData={formData}
+            onInputChange={handleInputChange}
+            onFileSelect={handleFileSelect}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            isDragging={isDragging}
+            onSelectProvider={() => setSelectModal(true)}
+            primaryColor={primaryColor}
+          />
+        </div>
       )}
 
       {currentStep === STEPS.METADATA && (
-        <MetadataStep
-          formData={formData}
-          onInputChange={handleInputChange}
-          primaryColor={primaryColor}
-        />
+        <div className="bg-white rounded-xl border border-[#e1e3e5] p-8">
+          <MetadataStep
+            formData={formData}
+            onInputChange={handleInputChange}
+            primaryColor={primaryColor}
+          />
+        </div>
       )}
 
       {currentStep === STEPS.PRICING && (
-        <PricingStep
-          formData={formData}
-          onPriceChange={handlePriceChange}
-          tokenName={tokenName}
-          primaryColor={primaryColor}
-        />
+        <div className="bg-white rounded-xl border border-[#e1e3e5] p-8">
+          <PricingStep
+            formData={formData}
+            onPriceChange={handlePriceChange}
+            tokenName={tokenName}
+            primaryColor={primaryColor}
+          />
+        </div>
       )}
 
       {currentStep === STEPS.REVIEW && (
-        <ReviewStep formData={formData} />
+        <div className="bg-white rounded-xl border border-[#e1e3e5] p-8">
+          <ReviewStep formData={formData} />
+        </div>
       )}
 
       <StepNavigation

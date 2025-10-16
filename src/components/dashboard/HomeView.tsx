@@ -87,8 +87,8 @@ const LAYOUT_CLASSES = {
   trendingContent: 'flex-1 min-w-0',
   trendingName: 'text-sm font-medium text-gray-900 truncate',
   trendingTime: 'text-xs text-gray-500',
-  seeMoreButton: 'bg-primary font-medium p-2 rounded-lg cursor-pointer text-white w-fit hover:bg-[#026d8a] transition-colors',
-  seeMoreContainer: 'text-gray-900 flex justify-center'
+  seeMoreButton: 'inline-flex items-center px-3 py-1.5 border border-primary bg-transparent text-xs font-medium rounded-md cursor-pointer text-primary w-fit hover:bg-primary hover:text-white transition-colors',
+  seeMoreContainer: 'text-gray-900 flex justify-start'
 } as const;
 
 const ANIMATION_CONFIG = {
@@ -298,17 +298,24 @@ const TrendingItem = ({ item, index, navigate, type }: TrendingItemProps & { typ
 const TrendingSection = ({ title, data, loader, usageHistoryLoader, type, navigate }: TrendingSectionProps) => {
   const isLoading = loader || usageHistoryLoader;
   const hasData = data?.length > 0;
-  const hasMoreData = data?.length > TRENDING_CONFIG.maxItems;
   const displayData = data?.slice(0, TRENDING_CONFIG.maxItems) || [];
   const emptyStateConfig = TRENDING_CONFIG.emptyStateConfigs[type];
 
   return (
     <div className={LAYOUT_CLASSES.trendingCard}>
-      <div className={LAYOUT_CLASSES.trendingHeader}>
-        <svg className={LAYOUT_CLASSES.trendingIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-        </svg>
-        <h2 className={LAYOUT_CLASSES.trendingTitle}>{title}</h2>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <svg className={LAYOUT_CLASSES.trendingIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+          <h2 className={LAYOUT_CLASSES.trendingTitle}>{title}</h2>
+        </div>
+        <button
+          onClick={() => navigate(NAVIGATION_PATHS[type === 'model' ? 'models' : 'datasets'])}
+          className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+        >
+          View All
+        </button>
       </div>
 
       <div className={LAYOUT_CLASSES.trendingList}>
@@ -335,17 +342,6 @@ const TrendingSection = ({ title, data, loader, usageHistoryLoader, type, naviga
                 showBackToHome={false}
                 action={emptyStateConfig.action}
               />
-            )}
-
-            {hasMoreData && (
-              <div className={LAYOUT_CLASSES.seeMoreContainer}>
-                <button
-                  onClick={() => navigate(NAVIGATION_PATHS[type === 'model' ? 'models' : 'datasets'])}
-                  className={LAYOUT_CLASSES.seeMoreButton}
-                >
-                  See more {type === 'model' ? 'models' : 'datasets'}
-                </button>
-              </div>
             )}
           </>
         )}

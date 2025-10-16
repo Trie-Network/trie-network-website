@@ -30,6 +30,8 @@ interface FilterSectionProps {
   categoryIcons: CategoryIcons;
   selectedFilters: Set<string>;
   onFilterSelect: (task: string) => void;
+  isExpanded: boolean;
+  onToggle: () => void;
 }
 
 interface MobileFilterButtonProps {
@@ -52,6 +54,8 @@ interface FilterSidebarProps {
   primaryColor: string;
   isLoading: boolean;
   filterSections?: React.ReactNode[];
+  expandedCategories: Set<string>;
+  onCategoryToggle: (category: string) => void;
 }
 
 interface ModelsGridProps {
@@ -182,13 +186,13 @@ const TASK_CATEGORIES: TaskCategories = {
 const LAYOUT_CLASSES = {
   container: 'grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-112px)] pt-6 pb-16 lg:px-8',
   mainContent: 'lg:col-span-3 h-[calc(100vh-112px)] overflow-y-auto pb-16 scrollbar-hide',
-  sidebar: 'hidden lg:block space-y-6 h-[calc(100vh-112px)] overflow-y-auto pr-4 -mr-4 pb-16 scrollbar-hide w-[280px]',
+  sidebar: 'hidden lg:block space-y-3 h-[calc(100vh-112px)] overflow-y-auto pr-4 -mr-4 pb-16 scrollbar-hide w-[280px]',
   mobileFilterButton: 'inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50',
   filterCount: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white',
   modelsGrid: 'grid grid-cols-1 md:grid-cols-2 gap-6 px-4 lg:px-0',
-  filterSection: 'bg-white rounded-xl shadow-sm border border-[#e1e3e5] p-6',
+  filterSection: 'bg-white rounded-lg shadow-sm border border-[#e1e3e5] p-4',
   filterTitle: 'text-lg font-semibold text-gray-900',
-  filterHeader: 'mb-4',
+  filterHeader: 'mb-0',
   filterButtons: 'space-y-2',
   clearFiltersButton: 'text-sm flex items-center gap-1',
   clearFiltersIcon: 'w-4 h-4',
@@ -230,26 +234,56 @@ const getTaskColor = (category: string, categoryIcons: CategoryIcons): string =>
 
 
 
-const FilterSection = React.memo(({ category, tasks, categoryIcons, selectedFilters, onFilterSelect }: FilterSectionProps) => (
-  <div className={LAYOUT_CLASSES.filterSection}>
-    <div className={LAYOUT_CLASSES.filterHeader}>
-      <h2 className={LAYOUT_CLASSES.filterTitle}>{category}</h2>
+const FilterSection = React.memo(({ category, tasks, categoryIcons, selectedFilters, onFilterSelect, isExpanded, onToggle }: FilterSectionProps) => {
+  const selectedCount = tasks.filter(task => selectedFilters.has(task)).length;
+  const hasSelected = selectedCount > 0;
+  
+  return (
+    <div className={`${LAYOUT_CLASSES.filterSection} ${!isExpanded ? 'py-3' : ''}`}>
+      <div className={LAYOUT_CLASSES.filterHeader}>
+        <button
+          onClick={onToggle}
+          className="flex items-center justify-between w-full text-left group hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className={`w-2 h-2 rounded-full ${getTaskColor(category, categoryIcons)}`}></div>
+            <h2 className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{category}</h2>
+            {hasSelected && (
+              <span className="bg-blue-100 text-blue-800 text-xs font-medium px-1.5 py-0.5 rounded-full">
+                {selectedCount}
+              </span>
+            )}
+          </div>
+          <svg
+            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+              isExpanded ? 'rotate-180' : ''
+            } group-hover:text-gray-600`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+      {isExpanded && (
+        <div className={`${LAYOUT_CLASSES.filterButtons} mt-3`}>
+          {tasks.map((task) => (
+            <FilterButton
+              key={task}
+              label={task}
+              icon={getTaskIcon(category, task, categoryIcons)}
+              color={getTaskColor(category, categoryIcons)}
+              isSelected={selectedFilters.has(task)}
+              onSelect={() => onFilterSelect(task)}
+              onRemove={() => onFilterSelect(task)}
+            />
+          ))}
+        </div>
+      )}
     </div>
-    <div className={LAYOUT_CLASSES.filterButtons}>
-      {tasks.map((task) => (
-        <FilterButton
-          key={task}
-          label={task}
-          icon={getTaskIcon(category, task, categoryIcons)}
-          color={getTaskColor(category, categoryIcons)}
-          isSelected={selectedFilters.has(task)}
-          onSelect={() => onFilterSelect(task)}
-          onRemove={() => onFilterSelect(task)}
-        />
-      ))}
-    </div>
-  </div>
-));
+  );
+});
 
 const MobileFilterButton = ({ isOpen, onToggle, selectedFiltersCount, primaryColor, isLoading }: MobileFilterButtonProps) => {
   if (isLoading) {
@@ -291,7 +325,9 @@ const FilterSidebar = ({
   onClearFilters, 
   primaryColor, 
   isLoading,
-  filterSections
+  filterSections,
+  expandedCategories,
+  onCategoryToggle
 }: FilterSidebarProps) => {
   if (isLoading) {
     return (
@@ -344,16 +380,30 @@ const FilterSidebar = ({
         />
       </div>
 
-      {filterSections || Object.entries(filteredCategories).map(([category, tasks]) => (
-        <FilterSection
-          key={category}
-          category={category}
-          tasks={tasks}
-          categoryIcons={CATEGORY_ICONS}
-          selectedFilters={selectedFilters}
-          onFilterSelect={onFilterSelect}
-        />
-      ))}
+      {filterSections || (() => {
+        // Sort categories to show ones with matches first
+        const sortedCategories = Object.entries(filteredCategories).sort(([, tasksA], [, tasksB]) => {
+          const hasMatchesA = tasksA.length > 0;
+          const hasMatchesB = tasksB.length > 0;
+          
+          if (hasMatchesA && !hasMatchesB) return -1; // A has matches, B doesn't - A comes first
+          if (!hasMatchesA && hasMatchesB) return 1;  // B has matches, A doesn't - B comes first
+          return 0; // Both have same match status - maintain original order
+        });
+
+        return sortedCategories.map(([category, tasks]) => (
+          <FilterSection
+            key={category}
+            category={category}
+            tasks={tasks}
+            categoryIcons={CATEGORY_ICONS}
+            selectedFilters={selectedFilters}
+            onFilterSelect={onFilterSelect}
+            isExpanded={expandedCategories.has(category)}
+            onToggle={() => onCategoryToggle(category)}
+          />
+        ));
+      })()}
     </>
   );
 };
@@ -415,6 +465,7 @@ const PaginationSection = ({ currentPage, totalPages, totalItems, itemsPerPage, 
 export function ModelsView({ primaryColor = '#0284a5', compId }: ModelsViewProps = {}) {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const { likedItems, likeCounts, handleLike } = useLikes();
   const [searchParams] = useSearchParams();
   const categoryFromUrl = searchParams.get('category');
@@ -506,18 +557,21 @@ export function ModelsView({ primaryColor = '#0284a5', compId }: ModelsViewProps
     return filterCategoriesBySearch(TASK_CATEGORIES, debouncedSearchQuery);
   }, [debouncedSearchQuery, filterCategoriesBySearch]);
 
-  const filterSections = useMemo(() => {
-    return Object.entries(filteredCategories).map(([category, tasks]) => (
-      <FilterSection
-        key={category}
-        category={category}
-        tasks={tasks}
-        categoryIcons={CATEGORY_ICONS}
-        selectedFilters={selectedFilters}
-        onFilterSelect={handleFilterSelect}
-      />
-    ));
-  }, [filteredCategories, selectedFilters, handleFilterSelect]);
+  // Auto-expand categories that have search matches
+  useMemo(() => {
+    if (debouncedSearchQuery) {
+      const newExpandedCategories = new Set<string>();
+      Object.entries(filteredCategories).forEach(([category, tasks]) => {
+        if (tasks.length > 0) {
+          newExpandedCategories.add(category);
+        }
+      });
+      setExpandedCategories(newExpandedCategories);
+    } else {
+      // Clear expanded categories when search is cleared
+      setExpandedCategories(new Set());
+    }
+  }, [debouncedSearchQuery, filteredCategories]);
 
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -534,6 +588,43 @@ export function ModelsView({ primaryColor = '#0284a5', compId }: ModelsViewProps
   const handleMobileFiltersClose = useCallback(() => {
     setMobileFiltersOpen(false);
   }, []);
+
+  const handleCategoryToggle = useCallback((category: string) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(category)) {
+        newSet.delete(category);
+      } else {
+        newSet.add(category);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const filterSections = useMemo(() => {
+    // Sort categories to show ones with matches first
+    const sortedCategories = Object.entries(filteredCategories).sort(([, tasksA], [, tasksB]) => {
+      const hasMatchesA = tasksA.length > 0;
+      const hasMatchesB = tasksB.length > 0;
+      
+      if (hasMatchesA && !hasMatchesB) return -1; // A has matches, B doesn't - A comes first
+      if (!hasMatchesA && hasMatchesB) return 1;  // B has matches, A doesn't - B comes first
+      return 0; // Both have same match status - maintain original order
+    });
+
+    return sortedCategories.map(([category, tasks]) => (
+      <FilterSection
+        key={category}
+        category={category}
+        tasks={tasks}
+        categoryIcons={CATEGORY_ICONS}
+        selectedFilters={selectedFilters}
+        onFilterSelect={handleFilterSelect}
+        isExpanded={expandedCategories.has(category)}
+        onToggle={() => handleCategoryToggle(category)}
+      />
+    ));
+  }, [filteredCategories, selectedFilters, handleFilterSelect, expandedCategories, handleCategoryToggle]);
 
   return (
     <div className={LAYOUT_CLASSES.container}>
@@ -593,6 +684,8 @@ export function ModelsView({ primaryColor = '#0284a5', compId }: ModelsViewProps
           primaryColor={primaryColor}
           isLoading={loader}
           filterSections={filterSections}
+          expandedCategories={expandedCategories}
+          onCategoryToggle={handleCategoryToggle}
         />
       </div>
     </div>

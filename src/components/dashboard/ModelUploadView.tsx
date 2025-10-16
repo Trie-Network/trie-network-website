@@ -830,16 +830,22 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
                 Model Name
                 <span className="text-red-500 ml-1">*</span>
               </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 text-gray-900"
-                placeholder="e.g., Advanced NLP Model"
-                onFocus={(e) => Object.assign(e.target.style, focusRingStyle)}
-                onBlur={(e) => e.target.style.boxShadow = ''}
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  maxLength={100}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 text-gray-900 pr-16"
+                  placeholder="e.g., Advanced NLP Model"
+                  onFocus={(e) => Object.assign(e.target.style, focusRingStyle)}
+                  onBlur={(e) => e.target.style.boxShadow = ''}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+                  {formData.name.length}/100
+                </div>
+              </div>
               <p className="mt-2 text-sm text-gray-600">
                 Choose a clear, descriptive name for your model
               </p>
@@ -850,16 +856,22 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
                 Description
                 <span className="text-red-500 ml-1">*</span>
               </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 text-gray-900"
-                placeholder="Describe your model's capabilities and use cases..."
-                onFocus={(e) => Object.assign(e.target.style, focusRingStyle)}
-                onBlur={(e) => e.target.style.boxShadow = ''}
-              />
+              <div className="relative">
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  maxLength={1000}
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 text-gray-900 pb-8"
+                  placeholder="Describe your model's capabilities and use cases..."
+                  onFocus={(e) => Object.assign(e.target.style, focusRingStyle)}
+                  onBlur={(e) => e.target.style.boxShadow = ''}
+                />
+                <div className="absolute bottom-2 right-3 text-xs text-gray-500">
+                  {formData.description.length}/1000
+                </div>
+              </div>
               <p className="mt-2 text-sm text-gray-600">
                 Provide a detailed description of your model's features and capabilities
               </p>
@@ -1004,15 +1016,21 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
                 Hugging Face Model Link
               </label>
               <div className="flex gap-2 mt-4">
-                <input
-                  type="text"
-                  name="url"
-                  value={formData?.url}
-                  onChange={handleInputChange}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent bg-white text-gray-900"
-                  style={{ '--tw-ring-color': getNetworkColor() } as React.CSSProperties}
-                  placeholder="e.g., https://huggingface.co/models/facebook/bart-large-cnn"
-                />
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    name="url"
+                    value={formData?.url}
+                    onChange={handleInputChange}
+                    maxLength={500}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent bg-white text-gray-900 pr-16"
+                    style={{ '--tw-ring-color': getNetworkColor() } as React.CSSProperties}
+                    placeholder="e.g., https://huggingface.co/models/facebook/bart-large-cnn"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+                    {formData?.url?.length || 0}/500
+                  </div>
+                </div>
               </div>
             </div>
           </div>

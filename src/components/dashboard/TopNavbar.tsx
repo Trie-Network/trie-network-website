@@ -245,6 +245,7 @@ const PROFILE_MENU_ITEMS: ProfileMenuItem[] = [
 ];
 
 const SEARCH_OPTIONS: SearchOption[] = [
+  { id: 'all', label: 'All' },
   { id: 'model', label: 'AI Models' },
   { id: 'dataset', label: 'Datasets' },
   { id: 'infra', label: 'Infra Providers' }
@@ -463,7 +464,13 @@ const SearchBar: React.FC<SearchBarProps> = ({
               onFocus={onFocus}
               onBlur={onBlur}
               onChange={(e) => onSearch(e.target.value)}
-              placeholder="Search AI models, datasets..."
+              placeholder={
+                selectedOption?.id === "all" ? "Search all content..." :
+                selectedOption?.id === "model" ? "Search AI models..." :
+                selectedOption?.id === "dataset" ? "Search datasets..." :
+                selectedOption?.id === "infra" ? "Search infra providers..." :
+                "Search AI models, datasets..."
+              }
               className={LAYOUT_CLASSES.searchInput}
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1 text-xs text-gray-400">
@@ -844,7 +851,33 @@ export function TopNavbar({ primaryColor }: TopNavbarProps = {}) {
       return;
     }
     
-    if (selectedOption?.id === "infra") {
+    if (selectedOption?.id === "all") {
+      // Search across all types when "All" is selected
+      const allResults: SearchResult[] = [];
+      
+      // Search AI Models
+      const modelResults = enhancedSearch(nftData || [], value, 'model', {
+        includeDescription: true,
+        maxResults: 3
+      });
+      allResults.push(...modelResults);
+      
+      // Search Datasets
+      const datasetResults = enhancedSearch(nftData || [], value, 'dataset', {
+        includeDescription: true,
+        maxResults: 3
+      });
+      allResults.push(...datasetResults);
+      
+      // Search Infra Providers
+      const infraResults = enhancedSearch(infraProviders || [], value, 'infra', {
+        includeDescription: true,
+        maxResults: 2
+      });
+      allResults.push(...infraResults);
+      
+      setSearchData(allResults);
+    } else if (selectedOption?.id === "infra") {
       const results = enhancedSearch(infraProviders || [], value, selectedOption.id, {
         includeDescription: true,
         maxResults: 8
@@ -864,7 +897,23 @@ export function TopNavbar({ primaryColor }: TopNavbarProps = {}) {
     const slug = createSlug(data?.metadata?.name || data?.name);
     setSearchQuery('');
     
-    if (selectedOption?.id === "infra") {
+    // Determine the item type for navigation
+    let itemType = selectedOption?.id;
+    
+    // If "All" is selected, determine type from the data
+    if (selectedOption?.id === "all") {
+      if (data?.metadata?.type) {
+        itemType = data.metadata.type;
+      } else if (data?.name && !data?.metadata?.name) {
+        // This is likely an infra provider
+        itemType = "infra";
+      } else {
+        // Default to model if we can't determine
+        itemType = "model";
+      }
+    }
+    
+    if (itemType === "infra") {
       const formattedData = {
         metadata: {
           ...data,
@@ -873,13 +922,13 @@ export function TopNavbar({ primaryColor }: TopNavbarProps = {}) {
         },
       };
       navigate(`/dashboard/providerDetails/${slug}`, {
-        state: { model: { ...formattedData, type: selectedOption?.id } }
+        state: { model: { ...formattedData, type: itemType } }
       });
       return;
     }
     
-    navigate(`/dashboard/${selectedOption?.id}/${slug}`, {
-      state: { model: { ...data, type: selectedOption?.id } }
+    navigate(`/dashboard/${itemType}/${slug}`, {
+      state: { model: { ...data, type: itemType } }
     });
   };
 
@@ -956,7 +1005,13 @@ export function TopNavbar({ primaryColor }: TopNavbarProps = {}) {
                         onFocus={() => setIsSearchFocused(true)}
                         onBlur={() => setIsSearchFocused(false)}
                         onChange={(e) => onSearch(e.target.value)}
-                        placeholder="Search AI models, datasets..."
+                        placeholder={
+                          selectedOption?.id === "all" ? "Search all content..." :
+                          selectedOption?.id === "model" ? "Search AI models..." :
+                          selectedOption?.id === "dataset" ? "Search datasets..." :
+                          selectedOption?.id === "infra" ? "Search infra providers..." :
+                          "Search AI models, datasets..."
+                        }
                         className="block w-[480px] pl-10 pr-8 h-10 border border-border rounded-r-lg text-sm placeholder-text-tertiary focus:outline-none focus:ring-1 focus:ring-[#949494] bg-[#383838] text-text-primary transition-all"
                       />
                       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1 text-xs text-gray-400">

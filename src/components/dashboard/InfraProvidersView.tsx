@@ -1,6 +1,17 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { ModelCard, SearchInput, EmptyState, FilterButton, Pagination, MobileFilterDrawer, ModelCardSkeleton, FilterSkeleton, Skeleton } from '@/components/ui';
 import { useAuth, useFilteredItems } from '@/hooks';
+
+interface FilterSectionProps {
+  category: string;
+  items: string[];
+  categoryIcons: any;
+  selectedFilters: Set<string>;
+  onFilterSelect: (item: string) => void;
+  isExpanded: boolean;
+  onToggle: () => void;
+  isRegionSection?: boolean;
+}
 
 
 const ITEMS_PER_PAGE = 12;
@@ -58,10 +69,90 @@ const REGIONS = {
   ]
 };
 
+const FilterSection = ({ category, items, categoryIcons, selectedFilters, onFilterSelect, isExpanded, onToggle, isRegionSection = false }: FilterSectionProps) => {
+  const selectedCount = items.filter(item => selectedFilters.has(item)).length;
+  const hasSelected = selectedCount > 0;
+  
+  const getCategoryColor = (category: string) => {
+    if (isRegionSection) {
+      return 'bg-gradient-to-br from-gray-500 to-gray-600';
+    }
+    // For hardware types, use the first item's color
+    const firstItem = items[0];
+    return categoryIcons[firstItem]?.color || 'bg-gradient-to-br from-gray-500 to-gray-600';
+  };
+  
+  return (
+    <div className={`bg-white rounded-lg shadow-sm border border-[#e1e3e5] p-4 ${!isExpanded ? 'py-3' : ''}`}>
+      <div className="mb-0">
+        <button
+          onClick={onToggle}
+          className="flex items-center justify-between w-full text-left group hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className={`w-2 h-2 rounded-full ${getCategoryColor(category)}`}></div>
+            <h2 className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{category}</h2>
+            {hasSelected && (
+              <span className="bg-blue-100 text-blue-800 text-xs font-medium px-1.5 py-0.5 rounded-full">
+                {selectedCount}
+              </span>
+            )}
+          </div>
+          <svg
+            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+              isExpanded ? 'rotate-180' : ''
+            } group-hover:text-gray-600`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+      {isExpanded && (
+        <div className="space-y-2 mt-3">
+          {items.map((item) => (
+            isRegionSection ? (
+              <button
+                key={item}
+                className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <div className="w-5 h-5 bg-gradient-to-br from-gray-500 to-gray-600 rounded flex items-center justify-center text-white">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.5"
+                      d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+                    />
+                  </svg>
+                </div>
+                <span>{item}</span>
+              </button>
+            ) : (
+              <FilterButton
+                key={item}
+                label={item}
+                icon={categoryIcons[item]?.icon || ''}
+                color={categoryIcons[item]?.color || ''}
+                isSelected={selectedFilters.has(item)}
+                onSelect={() => onFilterSelect(item)}
+                onRemove={() => onFilterSelect(item)}
+              />
+            )
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export function InfraProvidersView() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const { infraProviders, loader } = useAuth()
 
  
@@ -86,6 +177,18 @@ export function InfraProvidersView() {
   const clearFilters = () => {
     setSelectedFilters(new Set());
   };
+
+  const handleCategoryToggle = useCallback((category: string) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(category)) {
+        newSet.delete(category);
+      } else {
+        newSet.add(category);
+      }
+      return newSet;
+    });
+  }, []);
   
   const filteredProviders = infraProviders.filter(provider => {
     if (selectedFilters.size === 0) return true;
@@ -139,6 +242,32 @@ export function InfraProvidersView() {
     return filtered;
   }, [searchQuery]);
 
+  // Auto-expand categories that have search matches
+  useMemo(() => {
+    if (searchQuery) {
+      const newExpandedCategories = new Set<string>();
+      
+      // Check hardware types
+      Object.entries(filteredHardwareTypes).forEach(([category, types]) => {
+        if (types.length > 0) {
+          newExpandedCategories.add(category);
+        }
+      });
+      
+      // Check regions
+      Object.entries(filteredRegions).forEach(([region, locations]) => {
+        if (locations.length > 0) {
+          newExpandedCategories.add(region);
+        }
+      });
+      
+      setExpandedCategories(newExpandedCategories);
+    } else {
+      // Clear expanded categories when search is cleared
+      setExpandedCategories(new Set());
+    }
+  }, [searchQuery, filteredHardwareTypes, filteredRegions]);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-112px)] pt-6 pb-16 px-4 md:px-6 lg:px-8">
       <MobileFilterDrawer isOpen={mobileFiltersOpen} onClose={() => setMobileFiltersOpen(false)}>
@@ -152,54 +281,49 @@ export function InfraProvidersView() {
             />
           </div>
 
-          {Object.entries(filteredHardwareTypes).map(([category, types]) => (
-            <div key={category} className="bg-white rounded-xl shadow-sm border border-[#e1e3e5] p-6">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">{category}</h2>
-              </div>
-              <div className="space-y-2">
-                {types.map((type) => (
-                  <FilterButton
-                    key={type}
-                    label={type}
-                    icon={PROVIDER_ICONS[type as keyof typeof PROVIDER_ICONS].icon}
-                    color={PROVIDER_ICONS[type as keyof typeof PROVIDER_ICONS].color}
-                    isSelected={selectedFilters.has(type)}
-                    onSelect={() => handleFilterSelect(type)}
-                    onRemove={() => handleFilterSelect(type)}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
+          {(() => {
+            // Combine hardware types and regions, then sort by matches
+            const allSections = [
+              ...Object.entries(filteredHardwareTypes).map(([category, types]) => ({
+                key: category,
+                category,
+                items: types,
+                categoryIcons: PROVIDER_ICONS,
+                isRegionSection: false
+              })),
+              ...Object.entries(filteredRegions).map(([region, locations]) => ({
+                key: region,
+                category: region,
+                items: locations,
+                categoryIcons: {},
+                isRegionSection: true
+              }))
+            ];
 
-          {Object.entries(filteredRegions).map(([region, locations]) => (
-            <div key={region} className="bg-white rounded-xl shadow-sm border border-[#e1e3e5] p-6">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">{region}</h2>
-              </div>
-              <div className="space-y-2">
-                {locations.map((location) => (
-                  <button
-                    key={location}
-                    className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-2"
-                  >
-                    <div className="w-5 h-5 bg-gradient-to-br from-gray-500 to-gray-600 rounded flex items-center justify-center text-white">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="1.5"
-                          d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
-                        />
-                      </svg>
-                    </div>
-                    <span>{location}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+            // Sort to show sections with matches first
+            const sortedSections = allSections.sort((a, b) => {
+              const hasMatchesA = a.items.length > 0;
+              const hasMatchesB = b.items.length > 0;
+              
+              if (hasMatchesA && !hasMatchesB) return -1; // A has matches, B doesn't - A comes first
+              if (!hasMatchesA && hasMatchesB) return 1;  // B has matches, A doesn't - B comes first
+              return 0; // Both have same match status - maintain original order
+            });
+
+            return sortedSections.map((section) => (
+              <FilterSection
+                key={section.key}
+                category={section.category}
+                items={section.items}
+                categoryIcons={section.categoryIcons}
+                selectedFilters={selectedFilters}
+                onFilterSelect={handleFilterSelect}
+                isExpanded={expandedCategories.has(section.key)}
+                onToggle={() => handleCategoryToggle(section.key)}
+                isRegionSection={section.isRegionSection}
+              />
+            ));
+          })()}
         </div>
       </MobileFilterDrawer>
 
@@ -273,7 +397,7 @@ export function InfraProvidersView() {
         )}
       </div>
 
-      <div className="space-y-6 h-[calc(100vh-112px)] overflow-y-auto pr-4 -mr-4 pb-16 scrollbar-hide w-[280px]">
+      <div className="space-y-3 h-[calc(100vh-112px)] overflow-y-auto pr-4 -mr-4 pb-16 scrollbar-hide w-[280px]">
         {loader ? (
           <>
             <div className="relative">
@@ -311,54 +435,49 @@ export function InfraProvidersView() {
               />
             </div>
 
-            {Object.entries(filteredHardwareTypes).map(([category, types]) => (
-              <div key={category} className="bg-white rounded-xl shadow-sm border border-[#e1e3e5] p-6">
-                <div className="mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900">{category}</h2>
-                </div>
-                <div className="space-y-2">
-                  {types.map((type) => (
-                    <FilterButton
-                      key={type}
-                      label={type}
-                      icon={PROVIDER_ICONS[type as keyof typeof PROVIDER_ICONS].icon}
-                      color={PROVIDER_ICONS[type as keyof typeof PROVIDER_ICONS].color}
-                      isSelected={selectedFilters.has(type)}
-                      onSelect={() => handleFilterSelect(type)}
-                      onRemove={() => handleFilterSelect(type)}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
+            {(() => {
+              // Combine hardware types and regions, then sort by matches
+              const allSections = [
+                ...Object.entries(filteredHardwareTypes).map(([category, types]) => ({
+                  key: category,
+                  category,
+                  items: types,
+                  categoryIcons: PROVIDER_ICONS,
+                  isRegionSection: false
+                })),
+                ...Object.entries(filteredRegions).map(([region, locations]) => ({
+                  key: region,
+                  category: region,
+                  items: locations,
+                  categoryIcons: {},
+                  isRegionSection: true
+                }))
+              ];
 
-            {Object.entries(filteredRegions).map(([region, locations]) => (
-              <div key={region} className="bg-white rounded-xl shadow-sm border border-[#e1e3e5] p-6">
-                <div className="mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900">{region}</h2>
-                </div>
-                <div className="space-y-2">
-                  {locations.map((location) => (
-                    <button
-                      key={location}
-                      className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-2"
-                    >
-                      <div className="w-5 h-5 bg-gradient-to-br from-gray-500 to-gray-600 rounded flex items-center justify-center text-white">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="1.5"
-                            d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
-                          />
-                        </svg>
-                      </div>
-                      <span>{location}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
+              // Sort to show sections with matches first
+              const sortedSections = allSections.sort((a, b) => {
+                const hasMatchesA = a.items.length > 0;
+                const hasMatchesB = b.items.length > 0;
+                
+                if (hasMatchesA && !hasMatchesB) return -1; // A has matches, B doesn't - A comes first
+                if (!hasMatchesA && hasMatchesB) return 1;  // B has matches, A doesn't - B comes first
+                return 0; // Both have same match status - maintain original order
+              });
+
+              return sortedSections.map((section) => (
+                <FilterSection
+                  key={section.key}
+                  category={section.category}
+                  items={section.items}
+                  categoryIcons={section.categoryIcons}
+                  selectedFilters={selectedFilters}
+                  onFilterSelect={handleFilterSelect}
+                  isExpanded={expandedCategories.has(section.key)}
+                  onToggle={() => handleCategoryToggle(section.key)}
+                  isRegionSection={section.isRegionSection}
+                />
+              ));
+            })()}
           </>
         )}
       </div>
