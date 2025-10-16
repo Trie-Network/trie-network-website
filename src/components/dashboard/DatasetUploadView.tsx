@@ -298,7 +298,48 @@ const createExecuteData = (data: PublishAssetData, connectedWallet: any) => ({
   smartContractToken: CONSTANTS.CONTRACT_TOKEN
 });
 
+const validateDetailsStep = (formData: FormData): boolean => {
+  // Check mandatory fields for details step
+  if (!formData.name || formData.name.trim().length === 0) {
+    toast.error("Dataset name is required.");
+    return false;
+  }
+  
+  if (!formData.description || formData.description.trim().length === 0) {
+    toast.error("Dataset description is required.");
+    return false;
+  }
+  
+  if (!formData.providerid || formData.providerid.trim().length === 0) {
+    toast.error("Please select a Depin provider.");
+    return false;
+  }
+  
+  if (formData?.files?.length > 0 && formData?.url && formData?.url?.length > 0) {
+    toast.error("Please provide either a file upload or a Hugging Face dataset URL, not both.");
+    return false;
+  }
+  
+  if (formData?.files?.length === 0 && !formData?.url) {
+    toast.error("Please upload a file or provide a Hugging Face dataset URL.");
+    return false;
+  }
+  
+  return true;
+};
+
 const validateFormData = (formData: FormData): boolean => {
+  // Check mandatory fields
+  if (!formData.name || formData.name.trim().length === 0) {
+    toast.error("Dataset name is required.");
+    return false;
+  }
+  
+  if (!formData.description || formData.description.trim().length === 0) {
+    toast.error("Dataset description is required.");
+    return false;
+  }
+  
   if (formData?.files?.length > 0 && formData?.url && formData?.url?.length > 0) {
     toast.error("Please provide either a file upload or a Hugging Face dataset URL, not both.");
     return false;
@@ -433,7 +474,10 @@ const DetailsStep = ({
 }: DetailsStepProps) => (
   <div className={LAYOUT_CLASSES.stepContainer}>
     <div>
-      <label className={LAYOUT_CLASSES.label}>Dataset Name</label>
+      <label className={LAYOUT_CLASSES.label}>
+        Dataset Name
+        <span className="text-red-500 ml-1">*</span>
+      </label>
       <div className="relative">
         <input
           type="text"
@@ -453,7 +497,10 @@ const DetailsStep = ({
     </div>
 
     <div>
-      <label className={LAYOUT_CLASSES.label}>Description</label>
+      <label className={LAYOUT_CLASSES.label}>
+        Description
+        <span className="text-red-500 ml-1">*</span>
+      </label>
       <div className="relative">
         <textarea
           name="description"
@@ -873,6 +920,22 @@ export function DatasetUploadView({ primaryColor = getNetworkColor(), compId }: 
       return;
     }
 
+    // Validate all mandatory fields before publishing
+    if (!formData.name || formData.name.trim().length === 0) {
+      toast.error("Dataset name is required.");
+      return;
+    }
+    
+    if (!formData.description || formData.description.trim().length === 0) {
+      toast.error("Dataset description is required.");
+      return;
+    }
+    
+    if (!formData.providerid || formData.providerid.trim().length === 0) {
+      toast.error("Please select a Depin provider.");
+      return;
+    }
+
     if (!validateFormData(formData)) {
       return;
     }
@@ -936,7 +999,9 @@ export function DatasetUploadView({ primaryColor = getNetworkColor(), compId }: 
   const handleNext = () => {
     switch (currentStep) {
       case STEPS.DETAILS:
-        setCurrentStep(STEPS.METADATA);
+        if (validateDetailsStep(formData)) {
+          setCurrentStep(STEPS.METADATA);
+        }
         break;
       case STEPS.METADATA:
         setCurrentStep(STEPS.PRICING);

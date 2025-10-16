@@ -365,6 +365,46 @@ const createExecuteData = (data: any, connectedWallet: any) => {
   };
 };
 
+const validateModelDetailsStep = (formData: any): boolean => {
+  // Check mandatory fields for details step
+  if (!formData.name || formData.name.trim().length === 0) {
+    toast.error("Model name is required.");
+    return false;
+  }
+  
+  if (!formData.description || formData.description.trim().length === 0) {
+    toast.error("Model description is required.");
+    return false;
+  }
+  
+  if (!formData.providerid || formData.providerid.trim().length === 0) {
+    toast.error("Please select a Depin provider.");
+    return false;
+  }
+  
+  if (!formData.mainCategory || formData.mainCategory.trim().length === 0) {
+    toast.error("Please select a main category.");
+    return false;
+  }
+  
+  if (!formData.category || formData.category.trim().length === 0) {
+    toast.error("Please select a specific task.");
+    return false;
+  }
+  
+  if (!formData.pricing?.price || formData.pricing.price.trim().length === 0) {
+    toast.error("Please set a price for your model.");
+    return false;
+  }
+  
+  // Validate file upload
+  if (!validateFileUpload(formData?.files || [], formData?.metadataFiles || [], formData?.url)) {
+    return false;
+  }
+  
+  return true;
+};
+
 const validateFileUpload = (files: File[], metadataFiles: File[], url?: string): boolean => {
   const hasFiles = files.length > 0;
   const hasUrl = url && url.length > 0;
@@ -548,6 +588,37 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
     if (!connectedWallet?.did) {
       toast.error("Please connect your wallet.")
       return
+    }
+
+    // Validate all mandatory fields before publishing
+    if (!formData.name || formData.name.trim().length === 0) {
+      toast.error("Model name is required.");
+      return;
+    }
+    
+    if (!formData.description || formData.description.trim().length === 0) {
+      toast.error("Model description is required.");
+      return;
+    }
+    
+    if (!formData.providerid || formData.providerid.trim().length === 0) {
+      toast.error("Please select a Depin provider.");
+      return;
+    }
+    
+    if (!formData.mainCategory || formData.mainCategory.trim().length === 0) {
+      toast.error("Please select a main category.");
+      return;
+    }
+    
+    if (!formData.category || formData.category.trim().length === 0) {
+      toast.error("Please select a specific task.");
+      return;
+    }
+    
+    if (!formData.pricing?.price || formData.pricing.price.trim().length === 0) {
+      toast.error("Please set a price for your model.");
+      return;
     }
 
 
@@ -741,10 +812,11 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
   
 
   const handleNext = () => {
-   
     switch (currentStep) {
       case STEPS.DETAILS:
-        setCurrentStep(STEPS.REVIEW);
+        if (validateModelDetailsStep(formData)) {
+          setCurrentStep(STEPS.REVIEW);
+        }
         break;
       case STEPS.REVIEW:
         handleUpload();
