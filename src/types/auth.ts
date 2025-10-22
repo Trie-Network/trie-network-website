@@ -21,6 +21,7 @@ export interface AuthContextType {
   nftData: NFTData[];
   allNftData: NFTData[];
   compNftData: Record<string, NFTData[]>;
+  setNftData: (data: NFTData[]) => void;
   
   infraProviders: GroupedInfraProvider[];
   
