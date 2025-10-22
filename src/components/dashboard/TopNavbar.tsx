@@ -1100,8 +1100,6 @@ export function TopNavbar({ primaryColor }: TopNavbarProps = {}) {
                                 logout();
                                 setShowDisconnectModal(false);
                                 localStorage.setItem('connect', JSON.stringify(false));
-
-                                navigate('/');
                               }}
                               className="w-full text-left px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-[#333333] flex items-center space-x-2"
                             >
@@ -1148,7 +1146,6 @@ export function TopNavbar({ primaryColor }: TopNavbarProps = {}) {
                 logout();
                 setShowDisconnectModal(false);
                 localStorage.setItem('connect', JSON.stringify(false));
-                navigate('/');
               }}
               className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
             >

@@ -17,7 +17,12 @@ export interface InfraProvider {
   endpoints?: {
     inference?: string;
     download?: string;
-    [key: string]: string | undefined;
+    upload?: string;
+    mlflow?: {
+      metrics_fetch?: string;
+      metrics_download?: string;
+    };
+    [key: string]: string | { metrics_fetch?: string; metrics_download?: string } | undefined;
   };
 }
 

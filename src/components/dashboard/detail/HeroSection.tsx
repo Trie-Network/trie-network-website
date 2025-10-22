@@ -60,12 +60,11 @@ const formatUpdateTime = (history: HistoryItem[]): string => {
 
 const getDownloadCount = (history: HistoryItem[]): number => {
   if (!history?.length) return 0;
-  // Filter history for "bought" events which represent actual purchases/downloads
-  const boughtEvents = history.filter(item => {
-    const description = String(item?.NFTData || '').toLowerCase();
-    return description.includes('bought by');
-  });
-  return boughtEvents.length;
+  
+  // Count transactions that contain "bought by" in their NFTData
+  return history.filter(item => 
+    item.NFTData && item.NFTData.toLowerCase().includes('bought by')
+  ).length;
 };
 
 const getInitials = (name: string): string => {

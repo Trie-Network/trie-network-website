@@ -95,6 +95,19 @@ const ASSET_ENDPOINTS = {
 
     uploadObj: (url: string, fd: FormData) => {
         return axios.post(url, fd);
+    },
+
+    getModelMetadata: (assetId: string) => {
+        return api.get(`ai-models/metadata/${assetId}`, {
+            serviceType: "dapp"
+        } as any);
+    },
+
+    downloadModelMetadata: (assetId: string) => {
+        return api.get(`ai-models/metadata/download/${assetId}`, {
+            serviceType: "dapp",
+            responseType: 'blob'
+        } as any);
     }
 } as const;
 
@@ -167,6 +180,8 @@ export const END_POINTS = {
     upload_files: ASSET_ENDPOINTS.uploadFiles,
     get_rating_by_asset: ASSET_ENDPOINTS.getRatingByAsset,
     upload_obj: ASSET_ENDPOINTS.uploadObj,
+    get_model_metadata: ASSET_ENDPOINTS.getModelMetadata,
+    download_model_metadata: ASSET_ENDPOINTS.downloadModelMetadata,
 
 
     get_ft_info_by_did: FT_ENDPOINTS.getFtInfoByDid,
