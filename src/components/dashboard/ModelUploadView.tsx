@@ -108,7 +108,6 @@ interface ProviderSelectionModalProps {
 
 const STEPS = {
   DETAILS: 'details',
-  PRICING: 'pricing',
   REVIEW: 'review'
 } as const;
 
@@ -181,8 +180,7 @@ const TASK_CATEGORIES: TaskCategories = {
 };
 
 const BREADCRUMB_ITEMS: BreadcrumbItem[] = [
-  { label: 'Details' },
-  { label: 'Pricing' },
+  { label: 'Details & Pricing' },
   { label: 'Review' }
 ];
 
@@ -746,9 +744,6 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
    
     switch (currentStep) {
       case STEPS.DETAILS:
-        setCurrentStep(STEPS.PRICING);
-        break;
-      case STEPS.PRICING:
         setCurrentStep(STEPS.REVIEW);
         break;
       case STEPS.REVIEW:
@@ -759,11 +754,8 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
 
   const handleBack = () => {
     switch (currentStep) {
-      case STEPS.PRICING:
-        setCurrentStep(STEPS.DETAILS);
-        break;
       case STEPS.REVIEW:
-        setCurrentStep(STEPS.PRICING);
+        setCurrentStep(STEPS.DETAILS);
         break;
     }
   };
@@ -815,8 +807,7 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
       <div className="mb-8">
         <Breadcrumbs
           items={[
-            { label: 'Details' },
-            { label: 'Pricing' },
+            { label: 'Details & Pricing' },
             { label: 'Review' }
           ]}
           showSteps={true}
@@ -948,84 +939,6 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
               )}
             </div>
 
-           
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="col-span-2 mb-2">
-                  <p className="text-sm text-gray-600 font-medium">
-                    Enter your model's performance metrics (values between 0 and 1)
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Accuracy
-                  </label>
-                  <input
-                    type="text"
-                    name="metrics.accuracy"
-                    value={formData.metrics.accuracy}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 text-gray-900"
-                    placeholder="e.g., 0.95"
-                    pattern="[0-9]*\.?[0-9]*"
-                    onFocus={(e) => Object.assign(e.target.style, focusRingStyle)}
-                    onBlur={(e) => e.target.style.boxShadow = ''}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Precision
-                  </label>
-                  <input
-                    type="text"
-                    name="metrics.precision"
-                    value={formData.metrics.precision}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 text-gray-900"
-                    placeholder="e.g., 0.92"
-                    pattern="[0-9]*\.?[0-9]*"
-                    onFocus={(e) => Object.assign(e.target.style, focusRingStyle)}
-                    onBlur={(e) => e.target.style.boxShadow = ''}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Recall
-                  </label>
-                  <input
-                    type="text"
-                    name="metrics.recall"
-                    value={formData.metrics.recall}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 text-gray-900"
-                    placeholder="e.g., 0.94"
-                    pattern="[0-9]*\.?[0-9]*"
-                    onFocus={(e) => Object.assign(e.target.style, focusRingStyle)}
-                    onBlur={(e) => e.target.style.boxShadow = ''}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    F1 Score
-                  </label>
-                  <input
-                    type="text"
-                    name="metrics.f1Score"
-                    value={formData.metrics.f1Score}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 text-gray-900"
-                    placeholder="e.g., 0.93"
-                    pattern="[0-9]*\.?[0-9]*"
-                    onFocus={(e) => Object.assign(e.target.style, focusRingStyle)}
-                    onBlur={(e) => e.target.style.boxShadow = ''}
-                  />
-                </div>
-              </div>
-            </div>
           </div>
           <div className='my-4 mt-6'>
             <h3 className="text-lg font-semibold text-gray-900 mt-4">Asset</h3>
@@ -1190,50 +1103,49 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
               </div>
             )}
           </div>
-        </div>
-      )}
 
-      {currentStep === STEPS.PRICING && (
-        <div className="bg-white rounded-xl border border-[#e1e3e5] p-8">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">One-time Purchase</h2>
-                <p className="text-sm text-gray-600 mt-1">Set a fixed price for model access</p>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Price
-              </label>
-              <div className="relative max-w-md">
-                <div className="relative flex items-center">
-                
-                  <input
-                    type="text"
-                    name="pricing.price"
-                    value={formData?.pricing?.price}
-                    onChange={(e) => {
-                      const value = e?.target?.value?.replace(/[^0-9.]/g, '');
-                      setFormData((prev: any) => ({
-                        ...prev,
-                        pricing: {
-                          ...prev?.pricing,
-                          price: value
-                        }
-                      }));
-                    }}
-                    className="block w-full pl-6 pr-20 py-2.5 text-gray-900 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-400 transition-colors text-base font-medium bg-white shadow-sm"
-                    placeholder="Enter amount"
-                  />
-                 
-                  <p className='text-gray-600 border border-gray-300 bg-gray-100 ms-2  rounded-lg  p-2.5 font-medium text-sm focus:outline-none '>{tokenName.toUpperCase()}</p>
-                  <p className='text-gray-600 px-2 text-lg'>=</p>
-                  <p className='text-gray-600 border text-center border-gray-300  bg-white ms-2  rounded-lg  p-2.5 font-medium text-sm focus:outline-none w-auto'>{formData?.pricing?.price ? (formData?.pricing?.price / 1000) : 0}</p>
-                  <p className='text-gray-600 border border-gray-300 bg-gray-100 ms-2  rounded-lg  p-2.5 font-medium text-sm focus:outline-none '>RBT</p>
-                 
+          {/* Pricing Section */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Pricing</h2>
+                  <p className="text-sm text-gray-600 mt-1">Set a fixed price for model access</p>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Price
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <div className="relative max-w-md">
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      name="pricing.price"
+                      value={formData?.pricing?.price}
+                      onChange={(e) => {
+                        const value = e?.target?.value?.replace(/[^0-9.]/g, '');
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          pricing: {
+                            ...prev?.pricing,
+                            price: value
+                          }
+                        }));
+                      }}
+                      className="block w-full pl-6 pr-20 py-2.5 text-gray-900 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-400 transition-colors text-base font-medium bg-white shadow-sm"
+                      placeholder="Enter amount"
+                      onFocus={(e) => Object.assign(e.target.style, focusRingStyle)}
+                      onBlur={(e) => e.target.style.boxShadow = ''}
+                    />
+                    <p className='text-gray-600 border border-gray-300 bg-gray-100 ms-2 rounded-lg p-2.5 font-medium text-sm focus:outline-none'>{tokenName.toUpperCase()}</p>
+                  </div>
+                </div>
+                <p className="mt-2 text-sm text-gray-600">
+                  Set the price for users to purchase access to your model
+                </p>
               </div>
             </div>
           </div>
@@ -1263,29 +1175,6 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
               </div>
             </div>
 
-            <div>
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Performance Metrics</h2>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500">Accuracy</label>
-                    <p className="mt-1 text-sm text-gray-900">{formData.metrics.accuracy || '—'}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500">Precision</label>
-                    <p className="mt-1 text-sm text-gray-900">{formData.metrics.precision || '—'}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500">Recall</label>
-                    <p className="mt-1 text-sm text-gray-900">{formData.metrics.recall || '—'}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500">F1 Score</label>
-                    <p className="mt-1 text-sm text-gray-900">{formData.metrics.f1Score || '—'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             <div>
               <h2 className="text-lg font-medium text-gray-900 mb-4">Pricing</h2>
@@ -1296,7 +1185,7 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
                     <div>
                       <label className="block text-sm font-medium text-gray-500">Price</label>
                       <p className="mt-1 text-sm text-gray-900">
-                        {formData?.pricing?.price} {tokenName.toUpperCase()} ({formData?.pricing?.price / 1000} RBT)
+                        {formData?.pricing?.price} {tokenName.toUpperCase()}
                         {formData?.pricing?.model === 'subscription' ? '/month' : ''}
                       </p>
                     </div>
