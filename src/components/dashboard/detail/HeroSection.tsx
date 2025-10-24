@@ -312,10 +312,7 @@ export function HeroSection({ history, item }: HeroSectionProps) {
           <div>
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-xl md:text-3xl font-bold text-gray-900">
-                <div className="flex items-center gap-2">
-                  {item?.metadata?.name}
-                  <VerifiedBadge />
-                </div>
+                {item?.metadata?.name}
               </h1>
               <TypeBadge type={item.metadata?.type} />
             </div>

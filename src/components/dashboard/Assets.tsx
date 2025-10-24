@@ -390,27 +390,22 @@ export function Assets({ primaryColor = getNetworkColor(), compId = null }: Asse
     return () => clearTimeout(timer);
   }, []);
 
-  // Handle refresh from upload pages
   useEffect(() => {
     const state = location.state as { refresh?: boolean; type?: string } | null;
 
     if (state?.refresh) {
-      // Clear the state to prevent re-triggering on subsequent renders
       navigate(location.pathname, { replace: true, state: {} });
 
-      // Show loading toast
       const toastId = toast.loading('Fetching your newly uploaded asset...');
 
-      // Set appropriate tab based on type
       if (state.type === 'model') {
         setActiveTab('models');
       } else if (state.type === 'dataset') {
         setActiveTab('datasets');
       }
 
-      // Retry logic: fetch multiple times with delays to give backend time to index
       const retryFetch = async (attempt = 1, maxAttempts = 5) => {
-        const delay = attempt * 1500; // Increase delay with each attempt (1.5s, 3s, 4.5s, 6s, 7.5s)
+        const delay = attempt * 1500;
 
         await new Promise(resolve => setTimeout(resolve, delay));
         setRefetchTrigger(prev => prev + 1);
@@ -427,7 +422,6 @@ export function Assets({ primaryColor = getNetworkColor(), compId = null }: Asse
     }
   }, [location, navigate]);
 
-  // Filter assets by type
   const filteredAssets = assets.filter((asset) => {
     if (activeTab === 'all') return true;
     if (activeTab === 'models') return asset?.metadata?.type === 'model';
@@ -435,7 +429,6 @@ export function Assets({ primaryColor = getNetworkColor(), compId = null }: Asse
     return true;
   });
 
-  // Calculate counts for tabs
   const modelCount = assets.filter(a => a?.metadata?.type === 'model').length;
   const datasetCount = assets.filter(a => a?.metadata?.type === 'dataset').length;
 
@@ -458,7 +451,7 @@ export function Assets({ primaryColor = getNetworkColor(), compId = null }: Asse
 
   const handleTabChange = (tab: AssetTab) => {
     setActiveTab(tab);
-    setCurrentPage(1); // Reset to first page when changing tabs
+    setCurrentPage(1);
   };
 
   if (assets.length === 0 && !isLoading) {
@@ -483,7 +476,6 @@ export function Assets({ primaryColor = getNetworkColor(), compId = null }: Asse
       <div className="max-w-6xl mx-auto">
         <Header isLoading={isLoading} assetCount={assets?.length} />
 
-        {/* Tabs */}
         <div className="bg-white rounded-xl border border-[#e1e3e5] mb-6 mx-4 md:mx-6 lg:mx-8 overflow-hidden">
           <div className="flex border-b border-gray-200">
             <TabButton
@@ -507,7 +499,6 @@ export function Assets({ primaryColor = getNetworkColor(), compId = null }: Asse
           </div>
         </div>
 
-        {/* Assets Grid */}
         {filteredAssets.length === 0 && !isLoading ? (
           <div className="bg-white rounded-xl border border-[#e1e3e5] p-12 mx-4 md:mx-6 lg:mx-8 text-center">
             <div className="text-gray-400 mb-3">
@@ -539,7 +530,6 @@ export function Assets({ primaryColor = getNetworkColor(), compId = null }: Asse
               )}
             </div>
 
-            {/* Pagination */}
             {filteredAssets.length > ITEMS_PER_PAGE && (
               <Pagination
                 currentPage={currentPage}

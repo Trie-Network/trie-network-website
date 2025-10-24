@@ -203,7 +203,6 @@ const sliceString = (str: string, charsToShow = 5): string => {
 
 const cleanFileName = (fileName: string | null): string => {
   if (!fileName) return '';
-  // Remove timestamp prefix like "1760027621713_"
   return fileName.replace(/^\d+_/, '');
 };
 
@@ -279,19 +278,15 @@ const HistoryItemComponent: React.FC<HistoryItemComponentProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const badge = getBadgeType(item.NFTData);
 
-  // Function to format JSON data for better display
   const formatJSONData = (data: string) => {
     try {
-      // Try to parse and format JSON
       const parsed = JSON.parse(data);
       return JSON.stringify(parsed, null, 2);
     } catch {
-      // If not valid JSON, return as is
       return data;
     }
   };
 
-  // Function to check if data looks like JSON
   const isJSONLike = (data: string) => {
     return data.trim().startsWith('{') || data.trim().startsWith('[');
   };
@@ -402,7 +397,6 @@ const OverviewTab = ({ model, loader }: OverviewTabProps) => (
 );
 
 const FilesTab = ({ nftFile, loader, fileUrl }: FilesTabProps) => {
-  // Helper function to detect if file is CSV or TSV
   const getFileType = (fileName: string | null): 'csv' | 'tsv' | 'other' => {
     if (!fileName) return 'other';
     const cleanedName = cleanFileName(fileName).toLowerCase();
@@ -421,14 +415,12 @@ const FilesTab = ({ nftFile, loader, fileUrl }: FilesTabProps) => {
       ) : (
         <>
           {isTableFile ? (
-            // Show TableViewer for CSV/TSV files
             <TableViewer
               fileUrl={fileUrl}
               fileName={cleanFileName(nftFile)}
               fileType={fileType}
             />
           ) : (
-            // Show regular file display for other file types
             <div className={LAYOUT_CLASSES.filesContainer}>
               <div className={LAYOUT_CLASSES.filesHeader}>
                 <h2 className={LAYOUT_CLASSES.tabTitle}>Files</h2>
@@ -476,7 +468,6 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
         return;
       }
 
-      // Get metrics fetch endpoint from infraProviders
       const metricsFetchUrl = infraProviders?.[0]?.providers?.[0]?.endpoints?.mlflow?.metrics_fetch;
 
       if (!metricsFetchUrl) {
@@ -514,7 +505,6 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
       return;
     }
 
-    // Get metrics download endpoint from infraProviders
     const metricsDownloadUrl = infraProviders?.[0]?.providers?.[0]?.endpoints?.mlflow?.metrics_download;
 
     if (!metricsDownloadUrl) {
@@ -529,12 +519,10 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
       });
 
       if (response?.data) {
-        // Extract filename from Content-Disposition header or use model name
         const contentDisposition = response.headers['content-disposition'];
         const filenameMatch = contentDisposition?.match(/filename="?(.+?)"?$/);
         const filename = filenameMatch ? filenameMatch[1] : `${model?.metadata?.name || 'metadata'}.db`;
 
-        // Download the file
         const blob = new Blob([response.data], { type: 'application/octet-stream' });
         const url = URL.createObjectURL(blob);
 
@@ -565,7 +553,6 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
   };
 
   const formatValue = (value: string): string => {
-    // Try to parse as number for better formatting
     const numValue = parseFloat(value);
     if (!isNaN(numValue)) {
       return numValue < 1 ? numValue.toFixed(6) : numValue.toLocaleString();
@@ -637,13 +624,11 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
           
           {hasAnyData() ? (
             <>
-              {/* Parameters Table - Only show if params exist */}
-              {metricsData.params && Object.keys(metricsData.params).length > 0 && 
+              {metricsData.params && Object.keys(metricsData.params).length > 0 &&
                 renderTable("Parameters", metricsData.params, "params")
               }
-              
-              {/* Metrics Table - Only show if metrics exist */}
-              {metricsData.metrics && Object.keys(metricsData.metrics).length > 0 && 
+
+              {metricsData.metrics && Object.keys(metricsData.metrics).length > 0 &&
                 renderTable("Performance Metrics", metricsData.metrics, "metrics")
               }
             </>
@@ -858,7 +843,7 @@ export function DetailView({ primaryColor = getNetworkColor() }: DetailViewProps
           <HeroSection history={historyData} item={model} />
 
           <NavigationTabs
-            tabs={TABS}
+            tabs={model?.type === 'dataset' ? TABS.filter(tab => tab.id !== 'metrics') : TABS}
             activeTab={activeTab}
             onTabChange={setActiveTab}
           />
