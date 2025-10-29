@@ -733,8 +733,15 @@ export function DetailView({ primaryColor = getNetworkColor() }: DetailViewProps
     if (modelData) {
       setModel(modelData);
     } else if (!loader && nftData?.length) {
-      let name = id?.split("-")?.join(" ");
-      let result = nftData?.find((item: any) => item?.metadata?.name == name);
+      // First try to find by asset ID (CID) - for newly uploaded assets
+      let result = nftData?.find((item: any) => item?.nft === id);
+
+      // If not found, try to find by name (slug) - for backwards compatibility
+      if (!result) {
+        let name = id?.split("-")?.join(" ");
+        result = nftData?.find((item: any) => item?.metadata?.name == name);
+      }
+
       if (!result) {
         navigate('/dashboard/all');
         return;
@@ -743,7 +750,7 @@ export function DetailView({ primaryColor = getNetworkColor() }: DetailViewProps
         ...result,
         type: result?.metadata?.type
       });
-    } else if (!loader && nftData?.length) {
+    } else if (!loader && nftData?.length === 0) {
       navigate('/dashboard/all');
     }
   }, [modelData, nftData, loader, id, navigate]);
