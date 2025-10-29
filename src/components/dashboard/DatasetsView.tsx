@@ -68,7 +68,7 @@ const FORMAT_CATEGORIES: FormatCategories = {
   'File Formats': [
     'json',
     'csv',
-    'miscellaneous'
+    'Miscellaneous'
   ]
 };
 
@@ -124,7 +124,7 @@ const getFileFormat = (fileName: string): string => {
 
   if (extension == 'csv') return 'csv';
   if (extension == 'json') return 'json';
-  return 'miscellaneous';
+  return 'Miscellaneous';
 };
 
 const getDatasetData = (nftData: any[], compId?: string, compNftData?: any): any[] => {

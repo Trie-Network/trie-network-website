@@ -141,7 +141,8 @@ export function InfraProvidersView() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-112px)] pt-6 pb-16 px-4 md:px-6 lg:px-8">
-      <MobileFilterDrawer isOpen={mobileFiltersOpen} onClose={() => setMobileFiltersOpen(false)}>
+      {/* COMMENTED OUT FOR NOW - Mobile Filter Drawer */}
+      {/* <MobileFilterDrawer isOpen={mobileFiltersOpen} onClose={() => setMobileFiltersOpen(false)}>
         <div className="space-y-6">
           <div className="relative">
             <SearchInput
@@ -201,10 +202,11 @@ export function InfraProvidersView() {
             </div>
           ))}
         </div>
-      </MobileFilterDrawer>
+      </MobileFilterDrawer> */}
 
       <div className="lg:col-span-3 h-[calc(100vh-112px)] overflow-y-auto pb-16 scrollbar-hide">
-        <div className="flex items-center justify-between mb-4 lg:hidden">
+        {/* COMMENTED OUT FOR NOW - Mobile Filter Button */}
+        {/* <div className="flex items-center justify-between mb-4 lg:hidden">
           <button
             type="button"
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
@@ -220,7 +222,7 @@ export function InfraProvidersView() {
               {selectedFilters.size} selected
             </span>
           )}
-        </div>
+        </div> */}
 
         {loader ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -273,7 +275,8 @@ export function InfraProvidersView() {
         )}
       </div>
 
-      <div className="space-y-6 h-[calc(100vh-112px)] overflow-y-auto pr-4 -mr-4 pb-16 scrollbar-hide w-[280px]">
+      {/* COMMENTED OUT FOR NOW - Filters Section */}
+      {/* <div className="space-y-6 h-[calc(100vh-112px)] overflow-y-auto pr-4 -mr-4 pb-16 scrollbar-hide w-[280px]">
         {loader ? (
           <>
             <div className="relative">
@@ -361,7 +364,7 @@ export function InfraProvidersView() {
             ))}
           </>
         )}
-      </div>
+      </div> */}
     </div>
   );
 }

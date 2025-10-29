@@ -210,11 +210,10 @@ const Sidebar = ({
         </div>
       )}
 
-    
-      <NavigationSection 
-        title="COMPETITIONS" 
+
+      <NavigationSection
+        title="COMPETITIONS"
         items={competitionsNavigation}
-        badge={<span className="ml-2 px-1.5 py-0.5 text-xs font-medium bg-red-500 text-white rounded-full">New</span>}
       />
 
      
