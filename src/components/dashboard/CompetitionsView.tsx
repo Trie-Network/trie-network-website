@@ -68,7 +68,7 @@ const COMPETITIONS_DATA: Competition[] = [
   {
     id: 'dallas-ai',
     title: 'Dallas AI Summer Program 2025',
-    subtitle: 'Applications Open!',
+    subtitle: 'Completed',
     description: 'The world\'s first AI Summer Camp where models, data and infra are all hosted on blockchain network, where future builders learn, collaborate, and innovate at the edge of AI and Web3. Learn to build verifiable models, tokenized datasets, and intelligent agents with global mentors, hands-on projects, and a collaborative community redefining the future of AI.',
     dates: 'June 7 - August 9, 2025',
     location: 'Dallas, TX (In-person + Zoom)',
@@ -83,7 +83,7 @@ const COMPETITIONS_DATA: Competition[] = [
     incentives: 'Earn TRIE tokens by participating in the Dallas AI Summer Program 2025 — these tokens not only reward your contributions to decentralized AI but also give you future access to premium datasets, tools and fair monetization opportunities on the Trie network.',
     applyUrl: 'https://form.jotform.com/251185485610154',
     meetupUrl: 'https://www.meetup.com/dal-ai/events/307540963/',
-    status: 'upcoming'
+    status: 'past'
   },
 
 ];
@@ -208,9 +208,8 @@ export function CompetitionsView() {
           ) : (
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-2 flex items-center">
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">
                   AI Competitions
-                  <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-red-500 text-white rounded-full">New</span>
                 </h1>
                 <p className="text-gray-600 max-w-2xl">
                   Participate in AI challenges, showcase your skills, and win rewards

@@ -489,7 +489,6 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
         }
       } catch (error) {
         console.error("Error fetching model metadata:", error);
-        toast.error("Failed to load model metrics");
         setMetricsData({ params: {}, metrics: {} });
       } finally {
         setLoadingMetrics(false);
