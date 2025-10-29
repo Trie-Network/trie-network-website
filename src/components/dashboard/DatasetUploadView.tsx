@@ -730,13 +730,6 @@ export function DatasetUploadView({ primaryColor = getNetworkColor(), compId }: 
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  
-  useEffect(() => {
-    if (!loaders.uploadDataset && uploading) {
-      setUploading(false);
-      window.location.href = '/dashboard/assets';
-    }
-  }, [loaders.uploadDataset, uploading]);
 
   
   useEffect(() => {
@@ -878,9 +871,22 @@ export function DatasetUploadView({ primaryColor = getNetworkColor(), compId }: 
 
       try {
         const result = await window.xell.executeContract(executeData);
-        
+
         if (result?.status) {
           toast.success(result?.data?.message);
+          setUploading(false);
+          setUploadDatasetLoading(false);
+
+          const datasetData = {
+            nft: asset_id,
+            nft_file_name: fname,
+            nft_value: formData.pricing.price,
+            metadata: metadata,
+            type: metadata.type,
+            owner_did: connectedWallet?.did
+          };
+
+          navigate(`/dashboard/dataset/${asset_id}`, { state: { model: datasetData } });
         } else {
           toast.error(result?.data?.message);
           setUploading(false);
