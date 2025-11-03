@@ -69,8 +69,13 @@ const breadcrumbUtils = {
     return index === 0;
   },
 
-  
-  isActiveItem: (itemHref: string | undefined, currentPath: string): boolean => {
+
+  isActiveItem: (itemHref: string | undefined, currentPath: string, itemIndex?: number, currentStep?: number, showSteps?: boolean): boolean => {
+    // In step mode, highlight based on currentStep (index is 0-based, step is 1-based)
+    if (showSteps && currentStep !== undefined) {
+      return itemIndex === currentStep - 1;
+    }
+    // In navigation mode, highlight based on URL
     return itemHref === currentPath;
   },
 
@@ -90,12 +95,13 @@ const breadcrumbUtils = {
     return `${baseClasses} ${stateClasses} ${truncateClasses}`.trim();
   },
 
-  
-  getTextClasses: (isHome: boolean): string => {
-    const baseClasses = LAYOUT_CLASSES.text;
+
+  getTextClasses: (isHome: boolean, isActive: boolean): string => {
+    const baseClasses = 'text-sm font-medium rounded-md px-2 py-1';
+    const stateClasses = isActive ? LAYOUT_CLASSES.linkActive : 'text-gray-500';
     const truncateClasses = !isHome ? LAYOUT_CLASSES.textTruncate : '';
-    
-    return `${baseClasses} ${truncateClasses}`.trim();
+
+    return `${baseClasses} ${stateClasses} ${truncateClasses}`.trim();
   },
 
   
@@ -145,7 +151,7 @@ const BreadcrumbItem: React.FC<BreadcrumbItemProps> = ({ item, index, isActive, 
           </Link>
         </motion.div>
       ) : (
-        <span className={breadcrumbUtils.getTextClasses(isHome)}>
+        <span className={breadcrumbUtils.getTextClasses(isHome, isActive)}>
           {item.label}
         </span>
       )}
@@ -190,8 +196,8 @@ export function Breadcrumbs({
       <ol className={LAYOUT_CLASSES.breadcrumbList}>
         {items.map((item, index) => {
           const isHome = breadcrumbUtils.isHomeItem(index);
-          const isActive = breadcrumbUtils.isActiveItem(item.href, location.pathname);
-          
+          const isActive = breadcrumbUtils.isActiveItem(item.href, location.pathname, index, currentStep, showSteps);
+
           return (
             <BreadcrumbItem
               key={item.label}

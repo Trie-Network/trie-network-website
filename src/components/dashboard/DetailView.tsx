@@ -9,7 +9,7 @@ import {
   MetricsSkeleton,
 } from '@/components/ui';
 import { TableViewer } from '@/components/ui/TableViewer';
-import { ChevronDown, ChevronRight, Clock, Hash } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, Hash, RotateCw } from 'lucide-react';
 import { HeroSection, NavigationTabs, Sidebar } from './detail';
 import { useAuth } from '@/hooks';
 import { END_POINTS } from '@/api/requests';
@@ -75,6 +75,8 @@ interface HistoryTabProps {
   historyData: HistoryItem[];
   onTransactionClick: (transactionId: string) => void;
   sliceString: (str: string, length: number) => string;
+  onRefresh: () => void;
+  isRefreshing: boolean;
 }
 
 interface TimelineProps {
@@ -671,12 +673,22 @@ const Timeline = ({ historyData, onTransactionClick, sliceString }: TimelineProp
   </div>
 );
 
-const HistoryTab = ({ historyData, onTransactionClick, sliceString }: HistoryTabProps) => (
+const HistoryTab = ({ historyData, onTransactionClick, sliceString, onRefresh, isRefreshing }: HistoryTabProps) => (
   <motion.div key="history" initial={ANIMATION_CONFIG.initial} animate={ANIMATION_CONFIG.animate}>
     <div className={LAYOUT_CLASSES.historyContainer}>
-      <div className={LAYOUT_CLASSES.historyHeader}>
-        <h3 className={LAYOUT_CLASSES.historyTitle}>Usage History</h3>
-        <p className={LAYOUT_CLASSES.historyDescription}>Click on any item to expand details</p>
+      <div className="flex items-start justify-between mb-6">
+        <div className={LAYOUT_CLASSES.historyHeader}>
+          <h3 className={LAYOUT_CLASSES.historyTitle}>Usage History</h3>
+          <p className={LAYOUT_CLASSES.historyDescription}>Click on any item to expand details</p>
+        </div>
+        <button
+          onClick={onRefresh}
+          disabled={isRefreshing}
+          className="flex items-center justify-center p-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Refresh history"
+        >
+          <RotateCw className={`w-4 h-4 text-gray-600 ${isRefreshing ? 'animate-spin' : ''}`} />
+        </button>
       </div>
 
       {historyData?.length > 0 ? (
@@ -710,6 +722,7 @@ export function DetailView({ primaryColor = getNetworkColor() }: DetailViewProps
   const [nftFile, setNftFile] = useState<string | null>(null);
   const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [refreshingHistory, setRefreshingHistory] = useState(false);
   const location = useLocation();
   let modelData = location?.state?.model || null;
   const navigate = useNavigate();
@@ -775,10 +788,28 @@ export function DetailView({ primaryColor = getNetworkColor() }: DetailViewProps
     })();
   }, [model]);
 
-  async function loadHistory() {
-    let history = await END_POINTS.get_usage_history({ nft: model?.nft }) as any;
-    if (history?.status && history?.NFTDataReply?.length) {
-      setHistoryData(history?.NFTDataReply);
+  async function loadHistory(isRefresh = false) {
+    if (isRefresh) {
+      setRefreshingHistory(true);
+    }
+
+    try {
+      let history = await END_POINTS.get_usage_history({ nft: model?.nft }) as any;
+      if (history?.status && history?.NFTDataReply?.length) {
+        setHistoryData(history?.NFTDataReply);
+      }
+
+      if (isRefresh) {
+        toast.success("History refreshed successfully!");
+      }
+    } catch (error) {
+      if (isRefresh) {
+        toast.error("Failed to refresh history. Please try again.");
+      }
+    } finally {
+      if (isRefresh) {
+        setRefreshingHistory(false);
+      }
     }
   }
 
@@ -836,6 +867,10 @@ export function DetailView({ primaryColor = getNetworkColor() }: DetailViewProps
     window.open(`${API_PORTS.explorer}/#/transaction/${transactionId}`, '_blank');
   };
 
+  const handleRefreshHistory = () => {
+    loadHistory(true);
+  };
+
   return (
     <div style={{ marginTop: 120 }} className={LAYOUT_CLASSES.container}>
       {loader ? (
@@ -879,6 +914,8 @@ export function DetailView({ primaryColor = getNetworkColor() }: DetailViewProps
                     historyData={historyData}
                     onTransactionClick={onTransactionClick}
                     sliceString={sliceString}
+                    onRefresh={handleRefreshHistory}
+                    isRefreshing={refreshingHistory}
                   />
                 )}
               </div>
