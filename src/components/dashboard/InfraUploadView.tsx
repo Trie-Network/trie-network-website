@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getNetworkColor, getNetworkHoverColor } from '../../config/colors';
-import { Breadcrumbs } from '@/components/ui';
+import { Breadcrumbs, MarkdownEditor } from '@/components/ui';
 
 
 interface InfraUploadViewProps {
@@ -239,16 +239,17 @@ const BasicInfoSection = ({ formData, onChange }: { formData: FormData; onChange
       onChange={onChange}
       placeholder="e.g., High-Performance GPU Cluster"
     />
-    
-    <FormField
+
+    <MarkdownEditor
       label="Description"
-      name="description"
       value={formData.description}
-      onChange={onChange}
-      type="textarea"
+      onChange={(value) => onChange({ target: { name: 'description', value } } as any)}
       placeholder="Describe your infrastructure service and its capabilities..."
+      rows={6}
+      required
+      description="Provide a detailed description of your infrastructure service using Markdown"
     />
-    
+
     <FormField
       label="Infrastructure Type"
       name="type"
@@ -257,7 +258,7 @@ const BasicInfoSection = ({ formData, onChange }: { formData: FormData; onChange
       type="select"
       options={INFRASTRUCTURE_TYPES}
     />
-    
+
     <FormField
       label="Region"
       name="region"

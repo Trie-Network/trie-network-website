@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   Breadcrumbs,
   DetailViewSkeleton,
@@ -389,9 +391,13 @@ const OverviewTab = ({ model, loader }: OverviewTabProps) => (
       <div className={LAYOUT_CLASSES.tabContainer}>
         <h2 className={LAYOUT_CLASSES.tabTitle}>About</h2>
         <div className={LAYOUT_CLASSES.prose}>
-          <p className={LAYOUT_CLASSES.description}>
-            {model?.metadata?.description}
-          </p>
+          {model?.metadata?.description ? (
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {model.metadata.description}
+            </ReactMarkdown>
+          ) : (
+            <p className="text-gray-500 italic">No description provided.</p>
+          )}
         </div>
       </div>
     )}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCallback } from 'react';
 import { getNetworkColor } from '../../config/colors';
-import { Breadcrumbs, Modal } from '@/components/ui';
+import { Breadcrumbs, Modal, MarkdownEditor } from '@/components/ui';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/hooks';
 import { END_POINTS } from '@/api/requests';
@@ -446,19 +446,15 @@ const DetailsStep = ({
       />
     </div>
 
-    <div>
-      <label className={LAYOUT_CLASSES.label}>Description</label>
-      <textarea
-        name="description"
-        value={formData.description}
-        onChange={onInputChange}
-        rows={4}
-        className={LAYOUT_CLASSES.textareaField}
-        placeholder="Describe your dataset's contents and potential use cases..."
-        onFocus={(e) => Object.assign(e.target.style, getFocusRingStyle(primaryColor))}
-        onBlur={(e) => e.target.style.boxShadow = ''}
-      />
-    </div>
+    <MarkdownEditor
+      label="Description"
+      value={formData.description}
+      onChange={(value) => onInputChange({ target: { name: 'description', value } } as any)}
+      placeholder="Describe your dataset's contents and potential use cases..."
+      rows={6}
+      required
+      description="Provide a detailed description of your dataset using Markdown"
+    />
 
     <div>
       <div className={LAYOUT_CLASSES.providerSection}>

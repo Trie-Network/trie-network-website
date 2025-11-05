@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useCallback, useRef } from 'react';
 import { getNetworkColor } from '../../config/colors';
-import { Breadcrumbs } from '@/components/ui';
+import { Breadcrumbs, MarkdownEditor } from '@/components/ui';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/hooks';
 import { END_POINTS } from '@/api/requests';
@@ -839,25 +839,15 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
               </p>
             </div>
 
-            <div>
-              <label className="block text-base font-semibold text-gray-900 mb-2">
-                Description
-                <span className="text-red-500 ml-1">*</span>
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 text-gray-900"
-                placeholder="Describe your model's capabilities and use cases..."
-                onFocus={(e) => Object.assign(e.target.style, focusRingStyle)}
-                onBlur={(e) => e.target.style.boxShadow = ''}
-              />
-              <p className="mt-2 text-sm text-gray-600">
-                Provide a detailed description of your model's features and capabilities
-              </p>
-            </div>
+            <MarkdownEditor
+              label="Description"
+              value={formData.description}
+              onChange={(value) => setFormData({ ...formData, description: value })}
+              placeholder="Describe your model's capabilities and use cases..."
+              rows={6}
+              required
+              description="Provide a detailed description of your model's features and capabilities using Markdown"
+            />
             <div>
               <div className='flex my-2 items-center '>
                 <label className="block text-base font-semibold text-gray-900  me-3">
