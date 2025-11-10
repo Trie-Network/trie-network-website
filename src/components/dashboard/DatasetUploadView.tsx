@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCallback } from 'react';
 import { getNetworkColor } from '../../config/colors';
-import { Breadcrumbs, Modal, MarkdownEditor } from '@/components/ui';
+import { Breadcrumbs, Modal } from '@/components/ui';
+import { TipTapEditor } from '@/components/ui/TipTapEditor';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/hooks';
 import { END_POINTS } from '@/api/requests';
@@ -446,14 +447,13 @@ const DetailsStep = ({
       />
     </div>
 
-    <MarkdownEditor
+    <TipTapEditor
       label="Description"
       value={formData.description}
       onChange={(value) => onInputChange({ target: { name: 'description', value } } as any)}
       placeholder="Describe your dataset's contents and potential use cases..."
-      rows={6}
       required
-      description="Provide a detailed description of your dataset using Markdown"
+      description="Provide a detailed description of your dataset using rich text formatting"
     />
 
     <div>

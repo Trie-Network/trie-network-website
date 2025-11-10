@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useCallback, useRef } from 'react';
 import { getNetworkColor } from '../../config/colors';
-import { Breadcrumbs, MarkdownEditor } from '@/components/ui';
+import { Breadcrumbs } from '@/components/ui';
+import { TipTapEditor } from '@/components/ui/TipTapEditor';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/hooks';
 import { END_POINTS } from '@/api/requests';
@@ -839,14 +840,13 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
               </p>
             </div>
 
-            <MarkdownEditor
+            <TipTapEditor
               label="Description"
               value={formData.description}
               onChange={(value) => setFormData({ ...formData, description: value })}
               placeholder="Describe your model's capabilities and use cases..."
-              rows={6}
               required
-              description="Provide a detailed description of your model's features and capabilities using Markdown"
+              description="Provide a detailed description of your model's features and capabilities using rich text formatting"
             />
             <div>
               <div className='flex my-2 items-center '>

@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import DOMPurify from 'dompurify';
 import {
   Breadcrumbs,
   DetailViewSkeleton,
@@ -152,6 +153,32 @@ const getBadgeType = (description: string): BadgeType => {
     return { type: 'inference', text: 'Used for Inference' };
   } else {
     return { type: 'other', text: 'Other' };
+  }
+};
+
+// Helper to detect if content is HTML or Markdown
+const isHTMLContent = (content: string): boolean => {
+  // Check for common HTML tags from TipTap
+  const htmlPattern = /<(p|h1|h2|h3|strong|em|ul|ol|li|code|pre|blockquote)\b[^>]*>/i;
+  return htmlPattern.test(content);
+};
+
+// Component to render content (HTML or Markdown)
+const ContentRenderer = ({ content }: { content: string }) => {
+  if (isHTMLContent(content)) {
+    // Sanitize HTML to prevent XSS attacks
+    const sanitizedHTML = DOMPurify.sanitize(content, {
+      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'code', 'pre', 'blockquote', 'hr'],
+      ALLOWED_ATTR: ['style']
+    });
+    return <div dangerouslySetInnerHTML={{ __html: sanitizedHTML }} />;
+  } else {
+    // Render as Markdown for backward compatibility
+    return (
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        {content}
+      </ReactMarkdown>
+    );
   }
 };
 
@@ -392,9 +419,7 @@ const OverviewTab = ({ model, loader }: OverviewTabProps) => (
         <h2 className={LAYOUT_CLASSES.tabTitle}>About</h2>
         <div className={LAYOUT_CLASSES.prose}>
           {model?.metadata?.description ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {model.metadata.description}
-            </ReactMarkdown>
+            <ContentRenderer content={model.metadata.description} />
           ) : (
             <p className="text-gray-500 italic">No description provided.</p>
           )}
