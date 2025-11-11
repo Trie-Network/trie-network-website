@@ -183,16 +183,14 @@ export function TipTapEditor({
 
   // Handle heading selection from dropdown
   const setHeading = (level: number) => {
-    editor.commands.setHeading({ level: level as 1 | 2 | 3 | 4 | 5 | 6 });
+    editor.chain().focus().setHeading({ level: level as 1 | 2 | 3 | 4 | 5 | 6 }).run();
     setShowHeadingDropdown(false);
-    setTimeout(() => editor.commands.focus(), 0);
   };
 
   // Set to paragraph (remove heading)
   const setParagraph = () => {
-    editor.commands.setParagraph();
+    editor.chain().focus().setParagraph().run();
     setShowHeadingDropdown(false);
-    setTimeout(() => editor.commands.focus(), 0);
   };
 
   // Get current list type text for dropdown button
@@ -354,6 +352,7 @@ export function TipTapEditor({
               <div className={LAYOUT_CLASSES.dropdown}>
                 <button
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowListDropdown(!showListDropdown);
@@ -364,7 +363,7 @@ export function TipTapEditor({
                   <ChevronDown size={14} />
                 </button>
                 {showListDropdown && (
-                  <div className={LAYOUT_CLASSES.dropdownMenu}>
+                  <div className={LAYOUT_CLASSES.dropdownMenu} onMouseDown={(e) => e.preventDefault()}>
                     <div
                       onClick={() => setListType('bullet')}
                       className={`${LAYOUT_CLASSES.dropdownItem} ${
