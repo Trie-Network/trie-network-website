@@ -317,7 +317,7 @@ const uploadFile = async (formData: FormData, selectProvider: any, setUploading:
   const fname = `${parseInt(Date.now().toString())}_${formData.files[0]?.name}`;
   const renamedFile = new File([formData.files[0]], fname, { type: formData.files[0].type });
   
-  formDatas.append('file', renamedFile);
+  formDatas.append('assetFile', renamedFile);
   formDatas.append('assetName', fname);
   formDatas.append('assetType', 'dataset');
   
@@ -827,6 +827,11 @@ export function DatasetUploadView({ primaryColor = getNetworkColor(), compId }: 
   const handleUpload = useCallback(async () => {
     if (!connectedWallet?.did) {
       toast.error("Please connect your wallet.");
+      return;
+    }
+
+    if (!selectProvider?.endpoints?.upload) {
+      toast.error("Please select an infrastructure provider.");
       return;
     }
 
