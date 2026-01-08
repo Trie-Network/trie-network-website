@@ -317,7 +317,7 @@ const uploadFile = async (formData: FormData, selectProvider: any, setUploading:
   const fname = `${parseInt(Date.now().toString())}_${formData.files[0]?.name}`;
   const renamedFile = new File([formData.files[0]], fname, { type: formData.files[0].type });
   
-  formDatas.append('file', renamedFile);
+  formDatas.append('assetFile', renamedFile);
   formDatas.append('assetName', fname);
   formDatas.append('assetType', 'dataset');
   
@@ -730,13 +730,6 @@ export function DatasetUploadView({ primaryColor = getNetworkColor(), compId }: 
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  
-  useEffect(() => {
-    if (!loaders.uploadDataset && uploading) {
-      setUploading(false);
-      window.location.href = '/dashboard/assets';
-    }
-  }, [loaders.uploadDataset, uploading]);
 
   
   useEffect(() => {
@@ -837,6 +830,11 @@ export function DatasetUploadView({ primaryColor = getNetworkColor(), compId }: 
       return;
     }
 
+    if (!selectProvider?.endpoints?.upload) {
+      toast.error("Please select an infrastructure provider.");
+      return;
+    }
+
     if (!validateFormData(formData)) {
       return;
     }
@@ -878,9 +876,22 @@ export function DatasetUploadView({ primaryColor = getNetworkColor(), compId }: 
 
       try {
         const result = await window.xell.executeContract(executeData);
-        
+
         if (result?.status) {
           toast.success(result?.data?.message);
+          setUploading(false);
+          setUploadDatasetLoading(false);
+
+          const datasetData = {
+            nft: asset_id,
+            nft_file_name: fname,
+            nft_value: formData.pricing.price,
+            metadata: metadata,
+            type: metadata.type,
+            owner_did: connectedWallet?.did
+          };
+
+          navigate(`/dashboard/dataset/${asset_id}`, { state: { model: datasetData } });
         } else {
           toast.error(result?.data?.message);
           setUploading(false);

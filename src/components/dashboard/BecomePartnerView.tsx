@@ -202,28 +202,7 @@ export function BecomePartnerView() {
         <p className={CONTENT_STYLES.description}>
           The partner program is currently under development. Stay tuned for updates!
         </p>
-        <div className={CONTENT_STYLES.buttonGroup}>
-          <PrimaryButton onClick={handlePartnerRequest} disabled={state.isSubmitting}>
-            {state.isSubmitting ? (
-              <>
-                <LoadingSpinner />
-                Processing...
-              </>
-            ) : (
-              'Get Notified'
-            )}
-          </PrimaryButton>
-          <SecondaryButton onClick={() => navigate('/dashboard/all')}>
-            Back to Home
-          </SecondaryButton>
-        </div>
       </div>
-
-      <SuccessModal
-        show={state.showSuccessModal}
-        onClose={handleCloseModal}
-        onNavigateHome={handleNavigateHome}
-      />
     </div>
   );
 }

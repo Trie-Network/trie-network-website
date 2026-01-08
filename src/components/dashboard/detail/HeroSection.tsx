@@ -5,6 +5,7 @@ import { CONSTANTS } from '@/config/network';
 import { getNetworkColor, getNetworkHoverColor } from '../../../config/colors';
 import moment from 'moment';
 import toast from 'react-hot-toast';
+import { Copy, Check } from 'lucide-react';
 
 
 interface RatingData {
@@ -227,15 +228,27 @@ const Tags = ({ tags }: { tags?: string[] }) => (
   </div>
 );
 
-  
+
 export function HeroSection({ history, item }: HeroSectionProps) {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [rating, setRating] = useState(0);
   const [ratingData, setRatingData] = useState<RatingData>({});
   const [ratingLoading, setRatingLoading] = useState(false);
   const [refetchApi, setRefetchApi] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const { connectedWallet } = useAuth();
+
+  const handleCopyAssetId = async () => {
+    try {
+      await navigator.clipboard.writeText(item?.nft || '');
+      setCopied(true);
+      toast.success('Asset ID copied to clipboard');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast.error('Failed to copy Asset ID');
+    }
+  };
 
   useEffect(() => {
     const fetchRatingData = async () => {
@@ -312,11 +325,19 @@ export function HeroSection({ history, item }: HeroSectionProps) {
           <div>
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-xl md:text-3xl font-bold text-gray-900">
-                <div className="flex items-center gap-2">
-                  {item?.metadata?.name}
-                  <VerifiedBadge />
-                </div>
+                {item?.metadata?.name}
               </h1>
+              <button
+                onClick={handleCopyAssetId}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors group"
+                title="Copy Asset ID"
+              >
+                {copied ? (
+                  <Check className="w-5 h-5 text-green-500" />
+                ) : (
+                  <Copy className="w-5 h-5 text-gray-400 group-hover:text-gray-600" />
+                )}
+              </button>
               <TypeBadge type={item.metadata?.type} />
             </div>
             <CreatorInfo name={item?.metadata?.name} history={history} />

@@ -370,19 +370,17 @@ const validateFileUpload = (files: File[], metadataFiles: File[], url?: string):
   const hasUrl = url && url.length > 0;
   const hasMetadata = metadataFiles.length > 0;
   
-  // Cannot have both file and URL
   if (hasFiles && hasUrl) {
     toast.error("Please provide either a file upload OR a Hugging Face URL, not both.");
     return false;
   }
   
-  // Must have at least file, URL, or metadata
   if (!hasFiles && !hasUrl && !hasMetadata) {
     toast.error("Please upload a file, provide a Hugging Face model URL, or upload an MLflow SQLite file.");
     return false;
   }
   
-  // Validate file if provided
+
   if (hasFiles) {
     const fname = `${parseInt(Date.now().toString())}_${files[0]?.name}`;
     const invalidExtensions = ['.jpg', '.png', '.jpeg', '.gif'];
@@ -393,7 +391,6 @@ const validateFileUpload = (files: File[], metadataFiles: File[], url?: string):
     }
   }
   
-  // Validate metadata if provided
   if (hasMetadata) {
     const metadataFile = metadataFiles[0];
     const validExtensions = ['.db', '.sqlite', '.sqlite3'];
@@ -452,14 +449,6 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
   const navigate = useNavigate()
   const tokenName = useTokenName();
 
-  
-  useEffect(() => {
-    if (!loaders.uploadModel && uploading) {
-     
-      setUploading(false);
-      window.location.href = '/dashboard/assets';
-    }
-  }, [loaders.uploadModel, uploading]);
 
  
   const focusRingStyle = {
@@ -600,7 +589,6 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
 
     let asset_id, fname;
 
-    // Validate upload methods
     if (!validateFileUpload(formData?.files || [], formData?.metadataFiles || [], formData?.url)) {
       return;
     }
@@ -615,7 +603,6 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
       formDatas.append('assetName', fname);
       formDatas.append('assetType', 'model');
       
-      // Add MLflow metadata if provided
       if (formData?.metadataFiles?.length > 0) {
         const metadataFile = formData.metadataFiles[0];
         formDatas.append('modelMetadata', metadataFile);
@@ -641,7 +628,6 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
       formDatas.append('assetType', 'model');
       formDatas.append('url', hfUrl);
       
-      // Add MLflow metadata if provided (even with URL)
       if (formData?.metadataFiles?.length > 0) {
         const metadataFile = formData.metadataFiles[0];
         formDatas.append('modelMetadata', metadataFile);
@@ -659,7 +645,6 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
       asset_id = r1?.data?.data?.assetId;
       fname = r1?.data?.data?.fileName || fname;
     } else if (formData?.metadataFiles?.length > 0) {
-      // MLflow metadata only (no model file)
       const formDatas = new FormData();
       fname = `${parseInt(Date.now().toString())}_${formData.metadataFiles[0]?.name}`;
 
@@ -668,8 +653,7 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
 
       formDatas.append('assetName', fname);
       formDatas.append('assetType', 'model');
-
-      // Create a placeholder empty file to satisfy API requirement
+      
       const placeholderBlob = new Blob([''], { type: 'application/octet-stream' });
       const placeholderFile = new File([placeholderBlob], fname, { type: 'application/octet-stream' });
       formDatas.append('assetFile', placeholderFile);
@@ -719,23 +703,33 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
 
     try {
       const result = await window.xell.executeContract(executeData);
-      
-      
-      
-      if (result?.status) {
-        toast.success(result?.data?.message);
-        
-      }
+
+        if (result?.status) {
+          toast.success(result?.data?.message);
+          setUploading(false);
+          setUploadModelLoading(false);
+
+          const modelData = {
+            nft: asset_id,
+            nft_file_name: fname,
+            nft_value: formData.pricing.price,
+            metadata: metadata,
+            type: metadata.type,
+            owner_did: connectedWallet?.did
+          };
+
+          navigate(`/dashboard/model/${asset_id}`, { state: { model: modelData } });
+        }
       else {
         toast.error(result?.data?.message);
-        setUploading(false); 
-        setUploadModelLoading(false); 
+        setUploading(false);
+        setUploadModelLoading(false);
       }
     } catch (error) {
-    
+
       toast.error("Contract execution failed. Please try again.");
-      setUploading(false); 
-      setUploadModelLoading(false); 
+      setUploading(false);
+      setUploadModelLoading(false);
     }
   }, [formData, connectedWallet, setUploadModelLoading]);      
   
@@ -1104,7 +1098,7 @@ export function ModelUploadView({ primaryColor = getNetworkColor(), compId }: Mo
             )}
           </div>
 
-          {/* Pricing Section */}
+   
           <div className="mt-8 pt-6 border-t border-gray-200">
             <div className="space-y-6">
               <div className="flex items-center justify-between mb-4">

@@ -8,6 +8,7 @@ import {
   FilesSkeleton,
   MetricsSkeleton,
 } from '@/components/ui';
+import { TableViewer } from '@/components/ui/TableViewer';
 import { ChevronDown, ChevronRight, Clock, Hash } from 'lucide-react';
 import { HeroSection, NavigationTabs, Sidebar } from './detail';
 import { useAuth } from '@/hooks';
@@ -61,6 +62,7 @@ interface OverviewTabProps {
 interface FilesTabProps {
   nftFile: string | null;
   loader: boolean;
+  fileUrl: string;
 }
 
 interface MetricsTabProps {
@@ -201,7 +203,6 @@ const sliceString = (str: string, charsToShow = 5): string => {
 
 const cleanFileName = (fileName: string | null): string => {
   if (!fileName) return '';
-  // Remove timestamp prefix like "1760027621713_"
   return fileName.replace(/^\d+_/, '');
 };
 
@@ -277,19 +278,15 @@ const HistoryItemComponent: React.FC<HistoryItemComponentProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const badge = getBadgeType(item.NFTData);
 
-  // Function to format JSON data for better display
   const formatJSONData = (data: string) => {
     try {
-      // Try to parse and format JSON
       const parsed = JSON.parse(data);
       return JSON.stringify(parsed, null, 2);
     } catch {
-      // If not valid JSON, return as is
       return data;
     }
   };
 
-  // Function to check if data looks like JSON
   const isJSONLike = (data: string) => {
     return data.trim().startsWith('{') || data.trim().startsWith('[');
   };
@@ -399,36 +396,59 @@ const OverviewTab = ({ model, loader }: OverviewTabProps) => (
   </motion.div>
 );
 
-const FilesTab = ({ nftFile, loader }: FilesTabProps) => (
-  <motion.div key="files" initial={ANIMATION_CONFIG.initial} animate={ANIMATION_CONFIG.animate}>
-    {loader ? (
-      <FilesSkeleton />
-    ) : (
-      <div className={LAYOUT_CLASSES.filesContainer}>
-        <div className={LAYOUT_CLASSES.filesHeader}>
-          <h2 className={LAYOUT_CLASSES.tabTitle}>Files</h2>
-        </div>
-        <div className={LAYOUT_CLASSES.filesList}>
-          <div className={LAYOUT_CLASSES.fileItem}>
-            <div className={LAYOUT_CLASSES.fileInfo}>
-              <div 
-                className={LAYOUT_CLASSES.fileIcon} 
-                style={{ backgroundColor: `rgba(${NETWORK_COLORS.primaryRgb}, 0.1)` }}
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: getNetworkColor() }}>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
+const FilesTab = ({ nftFile, loader, fileUrl }: FilesTabProps) => {
+  const getFileType = (fileName: string | null): 'csv' | 'tsv' | 'other' => {
+    if (!fileName) return 'other';
+    const cleanedName = cleanFileName(fileName).toLowerCase();
+    if (cleanedName.endsWith('.csv')) return 'csv';
+    if (cleanedName.endsWith('.tsv')) return 'tsv';
+    return 'other';
+  };
+
+  const fileType = getFileType(nftFile);
+  const isTableFile = fileType === 'csv' || fileType === 'tsv';
+
+  return (
+    <motion.div key="files" initial={ANIMATION_CONFIG.initial} animate={ANIMATION_CONFIG.animate}>
+      {loader ? (
+        <FilesSkeleton />
+      ) : (
+        <>
+          {isTableFile ? (
+            <TableViewer
+              fileUrl={fileUrl}
+              fileName={cleanFileName(nftFile)}
+              fileType={fileType}
+            />
+          ) : (
+            <div className={LAYOUT_CLASSES.filesContainer}>
+              <div className={LAYOUT_CLASSES.filesHeader}>
+                <h2 className={LAYOUT_CLASSES.tabTitle}>Files</h2>
               </div>
-              <div>
-                <div className={LAYOUT_CLASSES.fileName}>{cleanFileName(nftFile)}</div>
+              <div className={LAYOUT_CLASSES.filesList}>
+                <div className={LAYOUT_CLASSES.fileItem}>
+                  <div className={LAYOUT_CLASSES.fileInfo}>
+                    <div
+                      className={LAYOUT_CLASSES.fileIcon}
+                      style={{ backgroundColor: `rgba(${NETWORK_COLORS.primaryRgb}, 0.1)` }}
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: getNetworkColor() }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className={LAYOUT_CLASSES.fileName}>{cleanFileName(nftFile)}</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-    )}
-  </motion.div>
-);
+          )}
+        </>
+      )}
+    </motion.div>
+  );
+};
 
 const MetricsTab = ({ model, loader }: MetricsTabProps) => {
   const { infraProviders } = useAuth();
@@ -448,7 +468,6 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
         return;
       }
 
-      // Get metrics fetch endpoint from infraProviders
       const metricsFetchUrl = infraProviders?.[0]?.providers?.[0]?.endpoints?.mlflow?.metrics_fetch;
 
       if (!metricsFetchUrl) {
@@ -470,7 +489,6 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
         }
       } catch (error) {
         console.error("Error fetching model metadata:", error);
-        toast.error("Failed to load model metrics");
         setMetricsData({ params: {}, metrics: {} });
       } finally {
         setLoadingMetrics(false);
@@ -486,7 +504,6 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
       return;
     }
 
-    // Get metrics download endpoint from infraProviders
     const metricsDownloadUrl = infraProviders?.[0]?.providers?.[0]?.endpoints?.mlflow?.metrics_download;
 
     if (!metricsDownloadUrl) {
@@ -501,12 +518,10 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
       });
 
       if (response?.data) {
-        // Extract filename from Content-Disposition header or use model name
         const contentDisposition = response.headers['content-disposition'];
         const filenameMatch = contentDisposition?.match(/filename="?(.+?)"?$/);
         const filename = filenameMatch ? filenameMatch[1] : `${model?.metadata?.name || 'metadata'}.db`;
 
-        // Download the file
         const blob = new Blob([response.data], { type: 'application/octet-stream' });
         const url = URL.createObjectURL(blob);
 
@@ -537,7 +552,6 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
   };
 
   const formatValue = (value: string): string => {
-    // Try to parse as number for better formatting
     const numValue = parseFloat(value);
     if (!isNaN(numValue)) {
       return numValue < 1 ? numValue.toFixed(6) : numValue.toLocaleString();
@@ -609,13 +623,11 @@ const MetricsTab = ({ model, loader }: MetricsTabProps) => {
           
           {hasAnyData() ? (
             <>
-              {/* Parameters Table - Only show if params exist */}
-              {metricsData.params && Object.keys(metricsData.params).length > 0 && 
+              {metricsData.params && Object.keys(metricsData.params).length > 0 &&
                 renderTable("Parameters", metricsData.params, "params")
               }
-              
-              {/* Metrics Table - Only show if metrics exist */}
-              {metricsData.metrics && Object.keys(metricsData.metrics).length > 0 && 
+
+              {metricsData.metrics && Object.keys(metricsData.metrics).length > 0 &&
                 renderTable("Performance Metrics", metricsData.metrics, "metrics")
               }
             </>
@@ -720,8 +732,15 @@ export function DetailView({ primaryColor = getNetworkColor() }: DetailViewProps
     if (modelData) {
       setModel(modelData);
     } else if (!loader && nftData?.length) {
-      let name = id?.split("-")?.join(" ");
-      let result = nftData?.find((item: any) => item?.metadata?.name == name);
+      // First try to find by asset ID (CID) - for newly uploaded assets
+      let result = nftData?.find((item: any) => item?.nft === id);
+
+      // If not found, try to find by name (slug) - for backwards compatibility
+      if (!result) {
+        let name = id?.split("-")?.join(" ");
+        result = nftData?.find((item: any) => item?.metadata?.name == name);
+      }
+
       if (!result) {
         navigate('/dashboard/all');
         return;
@@ -730,7 +749,7 @@ export function DetailView({ primaryColor = getNetworkColor() }: DetailViewProps
         ...result,
         type: result?.metadata?.type
       });
-    } else if (!loader && nftData?.length) {
+    } else if (!loader && nftData?.length === 0) {
       navigate('/dashboard/all');
     }
   }, [modelData, nftData, loader, id, navigate]);
@@ -830,7 +849,7 @@ export function DetailView({ primaryColor = getNetworkColor() }: DetailViewProps
           <HeroSection history={historyData} item={model} />
 
           <NavigationTabs
-            tabs={TABS}
+            tabs={model?.type === 'dataset' ? TABS.filter(tab => tab.id !== 'metrics') : TABS}
             activeTab={activeTab}
             onTabChange={setActiveTab}
           />
@@ -843,7 +862,11 @@ export function DetailView({ primaryColor = getNetworkColor() }: DetailViewProps
                 )}
 
                 {activeTab === 'files' && (
-                  <FilesTab nftFile={nftFile} loader={loader} />
+                  <FilesTab
+                    nftFile={nftFile}
+                    loader={loader}
+                    fileUrl={`${infraProviders?.[0]?.providers?.[0]?.endpoints?.download}/${model?.nft}`}
+                  />
                 )}
 
                 {activeTab === 'metrics' && (
